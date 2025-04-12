@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <title>Результат</title>
+    <style>
+        body {
+            font-family: "Times New Roman", sans-serif;
+        }
+        table {
+            width: 80%;  /* Устанавливаем ширину таблицы */
+            margin: 20px auto;  /* Центрируем таблицу по горизонтали */
+            border-collapse: collapse;  /* Убираем промежутки между ячейками */
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;  /* Центрируем текст в ячейках */
+
+        }
+    </style>
+</head>
+<body>
+<h1 style="text-align: center;">Таблица результатов TFIDF</h1>
+    <table border="2">
+        <thead>
+            <tr>
+                <th>Слово</th>
+                <th>TF</th>
+                <th>IDF</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .words}}
+            <tr>
+                <td>{{.Word}}</td>
+                <td>{{.TF}}</td>
+                <td>{{.IDF}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    <a href="/">Вернуться на главную</a>
+</body>
