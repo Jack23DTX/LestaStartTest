@@ -7,7 +7,7 @@ import (
 )
 
 // Удаление пунктуации и приведение к нижнему регистру
-func PunctuationRemoveAndLower(s string) string {
+func punctuationRemoveAndLower(s string) string {
 	l := strings.ToLower(s)
 	var b strings.Builder
 	for _, r := range l {
@@ -24,7 +24,7 @@ func CountTf(documents []string) map[string]float64 {
 	wordCount := make(map[string]int)
 	totalWords := 0
 	for _, doc := range documents {
-		cleanWords := PunctuationRemoveAndLower(doc)
+		cleanWords := punctuationRemoveAndLower(doc)
 		words := strings.Fields(cleanWords)
 		for _, word := range words {
 			wordCount[word]++
@@ -47,7 +47,7 @@ func CountIdf(documents []string) map[string]float64 {
 	wordsDocumentCount := make(map[string]int)
 
 	for _, doc := range documents {
-		cleanWords := PunctuationRemoveAndLower(doc)
+		cleanWords := punctuationRemoveAndLower(doc)
 		words := strings.Fields(cleanWords)
 		seen := make(map[string]bool)
 		for _, word := range words {
