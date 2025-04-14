@@ -52,14 +52,13 @@ func UploadFileHandler(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка при чтении файла"})
 		}
-		documents = append(documents, string(content))
+		cleanWords := calculation.PunctuationRemoveAndLower(string(content))
+		documents = append(documents, cleanWords)
 	}
 
 	// Вычисление TF и IDF
 	tf := calculation.CountTf(documents)
-
-	docs := documents
-	idf := calculation.CountIdf(docs)
+	idf := calculation.CountIdf(documents)
 
 	// Инициализация слайса для хранения слов и их метрик
 	var wordData []WordData
