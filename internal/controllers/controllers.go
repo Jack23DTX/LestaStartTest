@@ -3,11 +3,11 @@ package controllers
 import (
 	"LestaStartTest/internal/calculation"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
 	"sort"
-
-	"github.com/gin-gonic/gin"
+	"sync"
 )
 
 // WordData - создание структуры для хранения информации о слове
@@ -56,9 +56,24 @@ func UploadFileHandler(c *gin.Context) {
 		documents = append(documents, cleanWords)
 	}
 
-	// Вычисление TF и IDF
-	tf := calculation.CountTf(documents)
-	idf := calculation.CountIdf(documents)
+	// Параллельное вычисление TF и ID
+	var tf map[string]float64
+	var idf map[string]float64
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		tf = calculation.CountTf(documents)
+	}()
+
+	go func() {
+		defer wg.Done()
+		idf = calculation.CountIdf(documents)
+	}()
+
+	wg.Wait()
 
 	// Инициализация слайса для хранения слов и их метрик
 	var wordData []WordData
