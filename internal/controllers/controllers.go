@@ -1,13 +1,14 @@
 package controllers
 
 import (
-	"LestaStartTest/internal/calculation"
-	"fmt"
-	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
 	"sort"
 	"sync"
+
+	"LestaStartTest/internal/calculation"
+
+	"github.com/gin-gonic/gin"
 )
 
 // WordData - создание структуры для хранения информации о слове
@@ -36,7 +37,6 @@ func UploadFileHandler(c *gin.Context) {
 	if len(files) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Не были загружены файлы"})
 	}
-	fmt.Println("Загруженные файлы:", files)
 
 	var documents []string
 
@@ -99,5 +99,4 @@ func UploadFileHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "result.html", gin.H{
 		"words": wordData,
 	})
-
 }

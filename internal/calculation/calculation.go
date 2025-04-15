@@ -6,7 +6,7 @@ import (
 	"unicode"
 )
 
-// Удаление пунктуации и приведение к нижнему регистру
+// PunctuationRemoveAndLower - удаление пунктуации и приведение к нижнему регистру
 func PunctuationRemoveAndLower(s string) string {
 	l := strings.ToLower(s)
 	var b strings.Builder
@@ -35,7 +35,6 @@ func CountTf(documents []string) map[string]float64 {
 	for word, count := range wordCount {
 		tf[word] = float64(count) / float64(totalWords)
 	}
-
 	return tf
 }
 
