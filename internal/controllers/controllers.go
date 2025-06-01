@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"LestaStartTest/internal/monitoring"
 	"io"
 	"net/http"
 	"sort"
 	"sync"
+	"time"
 
 	"LestaStartTest/internal/calculation"
 
@@ -25,6 +27,7 @@ func UploadPage(c *gin.Context) {
 
 // UploadFileHandler - обработчик для обработки текста и отображения таблицы
 func UploadFileHandler(c *gin.Context) {
+	start := time.Now() // Фиксируем время начала обработки
 
 	// Получение файлов
 	form, err := c.MultipartForm()
@@ -99,4 +102,7 @@ func UploadFileHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "result.html", gin.H{
 		"words": wordData,
 	})
+
+	processingTime := time.Since(start).Nanoseconds()
+	monitoring.UpdateMetrics(len(files), processingTime)
 }
