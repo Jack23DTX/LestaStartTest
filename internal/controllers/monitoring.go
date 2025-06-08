@@ -1,9 +1,11 @@
 package controllers
 
 import (
-	"LestaStartTest/internal/monitoring"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"LestaStartTest/internal/monitoring"
+
+	"github.com/gin-gonic/gin"
 )
 
 // StatusHandler - статус приложения

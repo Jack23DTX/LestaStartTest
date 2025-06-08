@@ -1,19 +1,24 @@
 FROM golang:1.23-alpine AS builder
 
-WORKDIR /web-app
+WORKDIR /app
 
-COPY .env ./
 COPY go.mod go.sum ./
-
 RUN go mod download
 
-COPY internal ./internal
-COPY cmd ./cmd
+COPY . .
 
-RUN go build -o /web-app/LestaStartTest ./cmd/
+RUN go build -o /app/LestaStartTest ./cmd/
 
-COPY internal/templates ./internal/templates
+# Финальный образ
+FROM alpine:latest
+WORKDIR /app
+
+COPY --from=builder /app/LestaStartTest .
+COPY --from=builder /app/internal/templates ./internal/templates
+COPY .env .
+
+RUN apk add --no-cache libc6-compat
 
 EXPOSE 8080
 
-CMD ["/web-app/LestaStartTest"]
+CMD ["./LestaStartTest"]

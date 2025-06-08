@@ -1,9 +1,11 @@
 package main
 
 import (
-	"LestaStartTest/internal/controllers"
 	"log"
 	"os"
+
+	"LestaStartTest/internal/controllers"
+	"LestaStartTest/internal/db"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -14,15 +16,13 @@ func init() {
 	if err := godotenv.Load(); err != nil {
 		log.Print("No .env file found")
 	}
+	db.Init()
 }
 
 func main() {
 
 	// Загрузка порта из .env
-	port, exist := os.LookupEnv("MAIN_PORT")
-	if !exist {
-		log.Fatal("No ports in .env")
-	}
+	port := os.Getenv("MAIN_PORT")
 
 	// Инициализация роутеров и запуск сервера
 	r := gin.Default()
@@ -30,11 +30,39 @@ func main() {
 	// Загрузка шаблонов страниц
 	r.LoadHTMLGlob("internal/templates/*.html")
 
-	// Роутеры
-	r.GET("/", controllers.UploadPage)
-	r.POST("/", controllers.UploadFileHandler)
+	// Публичные роутеры
+	r.GET("/login", controllers.LoginPage)
+	r.POST("/login", controllers.Login)
+	r.GET("/register", controllers.RegisterPage)
+	r.POST("/register", controllers.Register)
 
-	// API-эндпойнты
+	protected := r.Group("/")
+	protected.Use(controllers.AuthMiddleware())
+	{
+		// Веб-страницы
+		protected.GET("/", controllers.UploadPage)
+		protected.POST("/upload", controllers.UploadFileHandler)
+		protected.GET("/logout", controllers.Logout)
+
+		// Документы
+		protected.GET("/documents", controllers.ListDocumentsAPI)
+		protected.GET("/documents/:id", controllers.GetDocumentAPI)
+		protected.GET("/documents/:id/statistics", controllers.DocumentStatisticsAPI)
+		protected.DELETE("/documents/:id", controllers.DeleteDocumentAPI)
+
+		// Коллекции
+		protected.GET("/collections", controllers.ListCollectionsAPI)
+		protected.GET("/collections/:id", controllers.GetCollectionAPI)
+		protected.GET("/collections/:id/statistics", controllers.CollectionStatisticsAPI)
+		protected.POST("/collections/:collection_id/:document_id", controllers.AddDocumentToCollectionAPI)
+		protected.DELETE("/collections/:collection_id/:document_id", controllers.RemoveDocumentFromCollectionAPI)
+
+		// Пользователь
+		protected.PATCH("/user/:user_id", controllers.ChangePasswordAPI)
+		protected.DELETE("/user/:user_id", controllers.DeleteUserAPI)
+	}
+
+	// Системные эндпойнты
 	r.GET("/status", controllers.StatusHandler)
 	r.GET("/metrics", controllers.MetricsHandler)
 	r.GET("/version", controllers.VersionHandler)
