@@ -1,0 +1,611 @@
+definitions:
+  controllers.AuthRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  controllers.AuthResponse:
+    properties:
+      message:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  controllers.CreateCollectionRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  controllers.DocumentResponse:
+    properties:
+      content:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+info:
+  contact: { }
+  title: "Document Management API"
+  version: "1.0.0"
+paths:
+  /api/metrics:
+    get:
+      description: Возвращает статистику обработки документов.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Application metrics
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Метрики приложения
+      tags:
+      - Системные
+  /api/status:
+    get:
+      description: Проверяет состояние приложения.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Application is running
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Статус приложения
+      tags:
+      - Системные
+  /api/version:
+    get:
+      description: Возвращает текущую версию приложения.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Application version
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Версия приложения
+      tags:
+      - Системные
+  /collection/{collection_id}/{document_id}:
+    delete:
+      description: Удаляет документ из коллекции пользователя.
+      parameters:
+      - description: ID коллекции
+        in: path
+        name: collection_id
+        required: true
+        type: integer
+      - description: ID документа
+        in: path
+        name: document_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Document removed from collection
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Collection or Document not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to remove document
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удаление документа из коллекции
+      tags:
+      - Коллекции
+    post:
+      description: Добавляет документ в коллекцию пользователя.
+      parameters:
+      - description: ID коллекции
+        in: path
+        name: collection_id
+        required: true
+        type: integer
+      - description: ID документа
+        in: path
+        name: document_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Document added to collection
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Collection or Document not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to add document or update IDF
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Добавление документа в коллекцию
+      tags:
+      - Коллекции
+  /collections:
+    get:
+      description: Возвращает список коллекций, принадлежащих пользователю.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Collections
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Database error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Список коллекций
+      tags:
+      - Коллекции
+    post:
+      consumes:
+      - application/json
+      description: Создает новую коллекцию для пользователя.
+      parameters:
+      - description: Данные коллекции
+        in: body
+        name: CreateCollectionRequest
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.CreateCollectionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Collection created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to create collection
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создание коллекции
+      tags:
+      - Коллекции
+  /collections/{id}:
+    delete:
+      description: Удаляет коллекцию и связанные данные.
+      parameters:
+      - description: ID коллекции
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Collection deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Collection not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to delete collection or related data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удаление коллекции
+      tags:
+      - Коллекции
+    get:
+      description: Возвращает информацию о коллекции.
+      parameters:
+      - description: ID коллекции
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Collection details
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Collection not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получение коллекции
+      tags:
+      - Коллекции
+  /collections/{id}/statistics:
+    get:
+      description: Рассчитывает TF-IDF статистику для коллекции.
+      parameters:
+      - description: ID коллекции
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Statistics
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Collection not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Статистика коллекции
+      tags:
+      - Коллекции
+  /documents:
+    get:
+      description: Возвращает список документов, принадлежащих пользователю.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/controllers.DocumentResponse'
+            type: array
+        "500":
+          description: Database error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Список документов
+      tags:
+      - Документы
+  /documents/{id}:
+    delete:
+      description: Удаляет документ и связанные данные.
+      parameters:
+      - description: ID документа
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Document not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to clear associations or failed to delete
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удаление документа
+      tags:
+      - Документы
+    get:
+      description: Возвращает информацию о документе.
+      parameters:
+      - description: ID документа
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.DocumentResponse'
+        "404":
+          description: Document not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получение документа
+      tags:
+      - Документы
+  /documents/{id}/statistics:
+    get:
+      description: Рассчитывает TF-IDF статистику для документа.
+      parameters:
+      - description: ID документа
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Statistics
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Document is not in any collection
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Document not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to find collections
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Статистика документа
+      tags:
+      - Документы
+  /documents/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает файлы, обрабатывает их содержимое и сохраняет в базе
+        данных.
+      parameters:
+      - description: Файлы для загрузки
+        in: formData
+        name: files
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Files uploaded and processed successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Error getting files or no files uploaded
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to save files or process documents
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Загрузка файлов
+      tags:
+      - Документы
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Проверка учетных данных и генерация JWT токена.
+      parameters:
+      - description: Данные для аутентификации
+        in: body
+        name: AuthRequest
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.AuthResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Аутентификация пользователя
+      tags:
+      - Пользователь
+  /logout:
+    get:
+      description: Завершение сеанса пользователя.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully logged out
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Выход из аккаунта
+      tags:
+      - Пользователь
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Создание учетной записи пользователя.
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: AuthRequest
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.AuthResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: User already exists
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация нового пользователя
+      tags:
+      - Пользователь
+  /user/{user_id}:
+    delete:
+      description: Удаление пользователя, его документы и коллекции.
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удаление пользователя
+      tags:
+      - Пользователь
+    patch:
+      consumes:
+      - application/json
+      description: Обновление пароля пользователя.
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: Новый пароль
+        in: body
+        name: NewPassword
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password updated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Password update failed or database error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Изменение пароля
+      tags:
+      - Пользователь
+swagger: "2.0"

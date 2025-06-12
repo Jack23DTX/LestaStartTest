@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"os"
 
 	"LestaStartTest/internal/monitoring"
 
@@ -9,11 +10,23 @@ import (
 )
 
 // StatusHandler - статус приложения
+// @Summary Статус приложения
+// @Description Проверяет состояние приложения.
+// @Tags Системные
+// @Produce json
+// @Success 200 {object} map[string]string "Application is running"
+// @Router /api/status [get]
 func StatusHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }
 
 // MetricsHandler - метрики приложения
+// @Summary Метрики приложения
+// @Description Возвращает статистику обработки документов.
+// @Tags Системные
+// @Produce json
+// @Success 200 {object} map[string]string "Application metrics"
+// @Router /api/metrics [get]
 func MetricsHandler(c *gin.Context) {
 	totalDocs, avgTime := monitoring.GetMetrics()
 	c.JSON(http.StatusOK, gin.H{
@@ -23,6 +36,12 @@ func MetricsHandler(c *gin.Context) {
 }
 
 // VersionHandler - версия приложения
+// @Summary Версия приложения
+// @Description Возвращает текущую версию приложения.
+// @Tags Системные
+// @Produce json
+// @Success 200 {object} map[string]string "Application version"
+// @Router /api/version [get]
 func VersionHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"version": "1.1.0"})
+	c.JSON(http.StatusOK, gin.H{"version": os.Getenv("VERSION")})
 }

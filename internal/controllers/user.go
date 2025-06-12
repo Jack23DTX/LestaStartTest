@@ -12,6 +12,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// ChangePasswordAPI - изменение пароля пользователя
+// @Summary Изменение пароля
+// @Description Обновление пароля пользователя.
+// @Tags Пользователь
+// @Accept json
+// @Produce json
+// @Param user_id path int true "ID пользователя"
+// @Param NewPassword body string true "Новый пароль"
+// @Success 200 {object} map[string]string "Password updated"
+// @Failure 400 {object} map[string]string "Invalid input"
+// @Failure 403 {object} map[string]string "Forbidden"
+// @Failure 500 {object} map[string]string "Password update failed or database error"
+// @Router /user/{user_id} [patch]
 func ChangePasswordAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	requestedID, _ := strconv.Atoi(c.Param("user_id"))
@@ -47,6 +60,15 @@ func ChangePasswordAPI(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated"})
 }
 
+// DeleteUserAPI - удаление пользователя
+// @Summary Удаление пользователя
+// @Description Удаление пользователя, его документы и коллекции.
+// @Tags Пользователь
+// @Produce json
+// @Param user_id path int true "ID пользователя"
+// @Success 200 {object} map[string]string "User deleted"
+// @Failure 403 {object} map[string]string "Forbidden"
+// @Router /user/{user_id} [delete]
 func DeleteUserAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	requestedID, _ := strconv.Atoi(c.Param("user_id"))

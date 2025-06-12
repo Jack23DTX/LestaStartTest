@@ -16,7 +16,17 @@ type CreateCollectionRequest struct {
 	Name string `json:"name" binding:"required"`
 }
 
-// CreateCollectionAPI - эндпоинт для создания коллекций
+// CreateCollectionAPI - создание новой коллекции
+// @Summary Создание коллекции
+// @Description Создает новую коллекцию для пользователя.
+// @Tags Коллекции
+// @Accept json
+// @Produce json
+// @Param CreateCollectionRequest body CreateCollectionRequest true "Данные коллекции"
+// @Success 201 {object} map[string]string "Collection created"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 500 {object} map[string]string "Failed to create collection"
+// @Router /collections [post]
 func CreateCollectionAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 
@@ -42,7 +52,7 @@ func CreateCollectionAPI(c *gin.Context) {
 	})
 }
 
-// RecalcCollectionIDF - эндпоинт перерасчета
+// recalcCollectionIDF - пересчет IDF для коллекции
 func recalcCollectionIDF(collectionID uint, userID uint) error {
 	var texts []string
 	err := db.DB.Table("documents").
@@ -63,6 +73,14 @@ func recalcCollectionIDF(collectionID uint, userID uint) error {
 	return tx.Commit().Error
 }
 
+// ListCollectionsAPI - получение списка коллекций
+// @Summary Список коллекций
+// @Description Возвращает список коллекций, принадлежащих пользователю.
+// @Tags Коллекции
+// @Produce json
+// @Success 200 {object} map[string]string "Collections"
+// @Failure 500 {object} map[string]string "Database error"
+// @Router /collections [get]
 func ListCollectionsAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 
@@ -83,6 +101,15 @@ func ListCollectionsAPI(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"collections": response})
 }
 
+// GetCollectionAPI - получение коллекции по ID
+// @Summary Получение коллекции
+// @Description Возвращает информацию о коллекции.
+// @Tags Коллекции
+// @Produce json
+// @Param id path int true "ID коллекции"
+// @Success 200 {object} map[string]string "Collection details"
+// @Failure 404 {object} map[string]string "Collection not found"
+// @Router /collections/{id} [get]
 func GetCollectionAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	id, _ := strconv.Atoi(c.Param("id"))
@@ -110,6 +137,15 @@ func GetCollectionAPI(c *gin.Context) {
 	})
 }
 
+// CollectionStatisticsAPI - получение статистики коллекции
+// @Summary Статистика коллекции
+// @Description Рассчитывает TF-IDF статистику для коллекции.
+// @Tags Коллекции
+// @Produce json
+// @Param id path int true "ID коллекции"
+// @Success 200 {object} map[string]string "Statistics"
+// @Failure 404 {object} map[string]string "Collection not found"
+// @Router /collections/{id}/statistics [get]
 func CollectionStatisticsAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	id, _ := strconv.Atoi(c.Param("id"))
@@ -176,7 +212,17 @@ func CollectionStatisticsAPI(c *gin.Context) {
 	})
 }
 
-// AddDocumentToCollectionAPI - эндпоинт для добавления документа в коллекцию
+// AddDocumentToCollectionAPI - добавление документа в коллекцию
+// @Summary Добавление документа в коллекцию
+// @Description Добавляет документ в коллекцию пользователя.
+// @Tags Коллекции
+// @Produce json
+// @Param collection_id path int true "ID коллекции"
+// @Param document_id path int true "ID документа"
+// @Success 200 {object} map[string]string "Document added to collection"
+// @Failure 404 {object} map[string]string "Collection or Document not found"
+// @Failure 500 {object} map[string]string "Failed to add document or update IDF"
+// @Router /collection/{collection_id}/{document_id} [post]
 func AddDocumentToCollectionAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	collectionID, _ := strconv.Atoi(c.Param("collection_id"))
@@ -221,7 +267,17 @@ func AddDocumentToCollectionAPI(c *gin.Context) {
 
 }
 
-// RemoveDocumentFromCollectionAPI - эндпоинт для удаления документа в коллекции
+// RemoveDocumentFromCollectionAPI - удаление документа из коллекции
+// @Summary Удаление документа из коллекции
+// @Description Удаляет документ из коллекции пользователя.
+// @Tags Коллекции
+// @Produce json
+// @Param collection_id path int true "ID коллекции"
+// @Param document_id path int true "ID документа"
+// @Success 200 {object} map[string]string "Document removed from collection"
+// @Failure 404 {object} map[string]string "Collection or Document not found"
+// @Failure 500 {object} map[string]string "Failed to remove document"
+// @Router /collection/{collection_id}/{document_id} [delete]
 func RemoveDocumentFromCollectionAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	collectionID, _ := strconv.Atoi(c.Param("collection_id"))
@@ -258,7 +314,16 @@ func RemoveDocumentFromCollectionAPI(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Document removed from collection"})
 }
 
-// DeleteCollectionAPI - эндпоинт для удаления коллекций
+// DeleteCollectionAPI - удаление коллекции
+// @Summary Удаление коллекции
+// @Description Удаляет коллекцию и связанные данные.
+// @Tags Коллекции
+// @Produce json
+// @Param id path int true "ID коллекции"
+// @Success 200 {object} map[string]string "Collection deleted"
+// @Failure 404 {object} map[string]string "Collection not found"
+// @Failure 500 {object} map[string]string "Failed to delete collection or related data"
+// @Router /collections/{id} [delete]
 func DeleteCollectionAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	collectionID, _ := strconv.Atoi(c.Param("id"))

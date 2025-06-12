@@ -10,6 +10,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // Загрузка переменных окружения
@@ -30,6 +32,9 @@ func main() {
 
 	// Раздаём папку static/ по корню
 	r.Static("/static", "./static")
+
+	// Swagger маршруты
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Публичные API эндпоинты
 	r.POST("/login", controllers.LoginAPI)

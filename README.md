@@ -74,6 +74,7 @@ LestaStartTest/
 
 2. Создайте файл `.env` в корневой директории со следующим содержимым:
     ```
+    VERSION=2.1.1 
     JWT_SECRET=uFuHAcBfwJXlAwy+jMRwVWA2K5DGQ7twFCFHSsAq98U=
     MAIN_PORT=:8080
     DB_HOST=db

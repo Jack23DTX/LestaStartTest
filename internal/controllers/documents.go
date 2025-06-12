@@ -21,6 +21,14 @@ type DocumentResponse struct {
 	Content string `json:"content,omitempty"`
 }
 
+// ListDocumentsAPI - получение списка документов пользователя
+// @Summary Список документов
+// @Description Возвращает список документов, принадлежащих пользователю.
+// @Tags Документы
+// @Produce json
+// @Success 200 {object} []DocumentResponse
+// @Failure 500 {object} map[string]string "Database error"
+// @Router /documents [get]
 func ListDocumentsAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 
@@ -41,6 +49,15 @@ func ListDocumentsAPI(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"documents": response})
 }
 
+// GetDocumentAPI - получение документа по ID
+// @Summary Получение документа
+// @Description Возвращает информацию о документе.
+// @Tags Документы
+// @Produce json
+// @Param id path int true "ID документа"
+// @Success 200 {object} DocumentResponse
+// @Failure 404 {object} map[string]string "Document not found"
+// @Router /documents/{id} [get]
 func GetDocumentAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	id, _ := strconv.Atoi(c.Param("id"))
@@ -58,6 +75,17 @@ func GetDocumentAPI(c *gin.Context) {
 	})
 }
 
+// DocumentStatisticsAPI - получение статистики документа
+// @Summary Статистика документа
+// @Description Рассчитывает TF-IDF статистику для документа.
+// @Tags Документы
+// @Produce json
+// @Param id path int true "ID документа"
+// @Success 200 {object} map[string]string "Statistics"
+// @Failure 400 {object} map[string]string "Document is not in any collection"
+// @Failure 404 {object} map[string]string "Document not found"
+// @Failure 500 {object} map[string]string "Failed to find collections"
+// @Router /documents/{id}/statistics [get]
 func DocumentStatisticsAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	id, _ := strconv.Atoi(c.Param("id"))
@@ -155,6 +183,16 @@ func DocumentStatisticsAPI(c *gin.Context) {
 	})
 }
 
+// DeleteDocumentAPI - удаление документа
+// @Summary Удаление документа
+// @Description Удаляет документ и связанные данные.
+// @Tags Документы
+// @Produce json
+// @Param id path int true "ID документа"
+// @Success 200 {object} map[string]string "Successfully deleted"
+// @Failure 404 {object} map[string]string "Document not found"
+// @Failure 500 {object} map[string]string "Failed to clear associations or failed to delete"
+// @Router /documents/{id} [delete]
 func DeleteDocumentAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	id, _ := strconv.Atoi(c.Param("id"))
