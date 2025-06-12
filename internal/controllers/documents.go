@@ -14,6 +14,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// DocumentResponse - структура для ответа API
+type DocumentResponse struct {
+	ID      uint   `json:"id"`
+	Name    string `json:"name"`
+	Content string `json:"content,omitempty"`
+}
+
 func ListDocumentsAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 
@@ -23,11 +30,11 @@ func ListDocumentsAPI(c *gin.Context) {
 		return
 	}
 
-	response := make([]gin.H, len(documents))
+	response := make([]DocumentResponse, len(documents))
 	for i, doc := range documents {
-		response[i] = gin.H{
-			"id":   doc.ID,
-			"name": doc.Filename,
+		response[i] = DocumentResponse{
+			ID:   doc.ID,
+			Name: doc.Filename,
 		}
 	}
 
@@ -44,10 +51,10 @@ func GetDocumentAPI(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"id":      document.ID,
-		"name":    document.Filename,
-		"content": document.Content,
+	c.JSON(http.StatusOK, DocumentResponse{
+		ID:      document.ID,
+		Name:    document.Filename,
+		Content: document.Content,
 	})
 }
 
@@ -80,7 +87,7 @@ func DocumentStatisticsAPI(c *gin.Context) {
 			continue
 		}
 		for _, doc := range docs {
-			allDocuments = append(allDocuments, doc.Content)
+			allDocuments = append(allDocuments, doc.ProcessedContent)
 		}
 	}
 
@@ -94,7 +101,7 @@ func DocumentStatisticsAPI(c *gin.Context) {
 		corpus = append(corpus, doc)
 	}
 
-	tf := calculation.CountTf([]string{document.Content})
+	tf := calculation.CountTf([]string{document.ProcessedContent})
 	idf := calculation.CountIdf(corpus)
 
 	stats := make(map[string]gin.H)

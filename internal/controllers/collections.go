@@ -12,32 +12,53 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Функция перерасчета
-func recalcCollectionIDF(collectionID uint, userID uint) error {
+type CreateCollectionRequest struct {
+	Name string `json:"name" binding:"required"`
+}
 
-	var col models.Collection
-	if err := db.DB.Preload("Documents").
-		Where("id = ? AND user_id = ?", collectionID, userID).
-		First(&col, collectionID).Error; err != nil {
+// CreateCollectionAPI - эндпоинт для создания коллекций
+func CreateCollectionAPI(c *gin.Context) {
+	userID := c.MustGet("userID").(uint)
+
+	var req CreateCollectionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	collection := models.Collection{
+		UserID: userID,
+		Name:   req.Name,
+	}
+
+	if err := db.DB.Create(&collection).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create collection"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"id":   collection.ID,
+		"name": collection.Name,
+	})
+}
+
+// RecalcCollectionIDF - эндпоинт перерасчета
+func recalcCollectionIDF(collectionID uint, userID uint) error {
+	var texts []string
+	err := db.DB.Table("documents").
+		Select("processed_content").
+		Joins("JOIN collection_documents cd ON cd.document_id = documents.id").
+		Where("cd.collection_id = ? AND documents.user_id = ?", collectionID, userID).
+		Pluck("processed_content", &texts).Error
+	if err != nil {
 		return err
 	}
-
-	var docs []string
-	for _, doc := range col.Documents {
-		docs = append(docs, doc.Content)
-	}
-
-	idfMap := calculation.CountIdf(docs)
+	idfMap := calculation.CountIdf(texts)
 
 	tx := db.DB.Begin()
-	tx.Where("collection_id = ?", collectionID).
-		Delete(&models.CollectionIDF{})
-	for word, idfVal := range idfMap {
-		tx.Create(&models.CollectionIDF{
-			CollectionID: collectionID,
-			Word:         word,
-			IDFValue:     idfVal,
-		})
+	tx.Where("collection_id = ?", collectionID).Delete(&models.CollectionIDF{})
+	for w, v := range idfMap {
+		tx.Create(&models.CollectionIDF{CollectionID: collectionID, Word: w, IDFValue: v})
 	}
 	return tx.Commit().Error
 }
@@ -103,7 +124,7 @@ func CollectionStatisticsAPI(c *gin.Context) {
 
 	var combinedText strings.Builder
 	for _, doc := range col.Documents {
-		combinedText.WriteString(doc.Content)
+		combinedText.WriteString(doc.ProcessedContent)
 		combinedText.WriteString(" ")
 	}
 
@@ -155,6 +176,7 @@ func CollectionStatisticsAPI(c *gin.Context) {
 	})
 }
 
+// AddDocumentToCollectionAPI - эндпоинт для добавления документа в коллекцию
 func AddDocumentToCollectionAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	collectionID, _ := strconv.Atoi(c.Param("collection_id"))
@@ -199,6 +221,7 @@ func AddDocumentToCollectionAPI(c *gin.Context) {
 
 }
 
+// RemoveDocumentFromCollectionAPI - эндпоинт для удаления документа в коллекции
 func RemoveDocumentFromCollectionAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	collectionID, _ := strconv.Atoi(c.Param("collection_id"))
@@ -233,4 +256,33 @@ func RemoveDocumentFromCollectionAPI(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Document removed from collection"})
+}
+
+// DeleteCollectionAPI - эндпоинт для удаления коллекций
+func DeleteCollectionAPI(c *gin.Context) {
+	userID := c.MustGet("userID").(uint)
+	collectionID, _ := strconv.Atoi(c.Param("id"))
+
+	// Проверка владельца коллекции
+	var collection models.Collection
+	if err := db.DB.Where("id = ? AND user_id = ?", collectionID, userID).
+		First(&collection).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Collection not found"})
+		return
+	}
+
+	// Удаление связанных данных
+	if err := db.DB.Where("collection_id = ?", collectionID).
+		Delete(&models.CollectionIDF{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete IDF records"})
+		return
+	}
+
+	// Удаление коллекции
+	if err := db.DB.Delete(&collection).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete in Database"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Collection deleted"})
 }

@@ -1,103 +1,101 @@
 package controllers
 
 import (
-	"net/http"
-	"strconv"
-
 	"LestaStartTest/internal/db"
+	"LestaStartTest/internal/middleware"
 	"LestaStartTest/internal/models"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func LoginPage(c *gin.Context) {
-	errorMsg := c.Query("error")
-	c.HTML(http.StatusOK, "login.html", gin.H{"error": errorMsg})
+// Структуры запросов
+
+type AuthRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
-func RegisterPage(c *gin.Context) {
-	errorMsg := c.Query("error")
-	c.HTML(http.StatusOK, "register.html", gin.H{"error": errorMsg})
+type AuthResponse struct {
+	Message string `json:"message"`
+	UserID  uint   `json:"user_id,omitempty"`
 }
 
-func Login(c *gin.Context) {
-	username := c.PostForm("username")
-	password := c.PostForm("password")
+// LoginAPI - аутентификация пользователя
+func LoginAPI(c *gin.Context) {
+	var req AuthRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
 
 	var user models.User
-	if err := db.DB.Where("username = ?", username).First(&user).Error; err != nil {
-		c.Redirect(http.StatusFound, "/login?error=Invalid credentials")
+	if err := db.DB.Where("username = ?", req.Username).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials (login or password)"})
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		c.Redirect(http.StatusFound, "/login?error=Invalid credentials")
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials (login or password)"})
 		return
 	}
 
-	c.SetCookie("auth", strconv.Itoa(int(user.ID)), 3600, "/", "", false, true)
-	c.Redirect(http.StatusFound, "/")
+	token, err := middleware.GenerateToken(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token generation failed"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Logged successfully",
+		"token":   token,
+	})
 }
 
-func Register(c *gin.Context) {
-	username := c.PostForm("username")
-	password := c.PostForm("password")
+// RegisterAPI - регистрация нового пользователя
+func RegisterAPI(c *gin.Context) {
+	var req AuthRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
 
 	// Проверка на существование пользователя
 	var count int64
-	db.DB.Model(&models.User{}).Where("username = ?", username).Count(&count)
+	db.DB.Model(&models.User{}).Where("username = ?", req.Username).Count(&count)
 	if count > 0 {
-		c.Redirect(http.StatusFound, "/register?error=User already exists")
+		c.JSON(http.StatusConflict, gin.H{"error": "User already exists"})
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 
 	if err != nil {
-		c.Redirect(http.StatusFound, "/login?error=Error registering user")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error registering user"})
 		return
 	}
 
 	user := models.User{
-		Username: username,
+		Username: req.Username,
 		Password: string(hashedPassword),
 	}
 
 	if err := db.DB.Create(&user).Error; err != nil {
-		c.Redirect(http.StatusFound, "/login?error=Database error registering user")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error to register user"})
 		return
 	}
 
-	c.SetCookie("auth", strconv.Itoa(int(user.ID)), 3600, "/", "", false, true)
-	c.Redirect(http.StatusFound, "/")
-}
-
-func AuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		cookie, err := c.Cookie("auth")
-		if err != nil {
-			c.Redirect(http.StatusFound, "/login")
-			c.Abort()
-			return
-		}
-
-		userID, err := strconv.Atoi(cookie)
-		if err != nil {
-			c.Redirect(http.StatusFound, "/login")
-			c.Abort()
-			return
-		}
-
-		c.Set("userID", uint(userID))
-		c.Next()
+	token, err := middleware.GenerateToken(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token generation failed"})
+		return
 	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User successfully registered",
+		"token":   token,
+	})
 }
 
-func Logout(c *gin.Context) {
-	c.SetCookie("auth", "", -1, "/", "", false, true)
-
-	c.Set("userID", nil)
-
-	c.Redirect(http.StatusFound, "/login?message=You have been logged out")
+func LogoutAPI(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }

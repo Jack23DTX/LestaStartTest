@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TF-IDF SPA</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f2f2f2; }
+        #app { max-width: 960px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 4px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+        h1 { margin-top: 0; }
+        form { margin-bottom: 20px; }
+        label { display: block; margin: 12px 0 4px; font-weight: bold; }
+        input[type="text"], input[type="password"], input[type="file"], button, select {
+            width: 100%; padding: 8px; font-size: 1em; margin-bottom: 8px; box-sizing: border-box;
+        }
+        button { cursor: pointer; background-color: #007bff; border: none; color: #fff; border-radius: 3px; }
+        button:disabled { background: #aaa; cursor: default; }
+        nav { margin-bottom: 20px; }
+        nav button { width: auto; margin-right: 10px; }
+        .error { color: red; margin-bottom: 10px; }
+        .success { color: green; margin-bottom: 10px; }
+        ul { padding-left: 20px; margin-top: 0; }
+        li { margin-bottom: 4px; }
+        .content-block { white-space: pre-wrap; background: #eee; padding: 10px; border-radius: 4px; max-height: 300px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 6px 8px; border: 1px solid #ccc; }
+        th { background: #007bff; color: white; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <h1>TF-IDF SPA</h1>
+    <nav>
+        <button id="nav-login">Войти</button>
+        <button id="nav-register">Регистрация</button>
+        <button id="nav-documents" disabled>Документы</button>
+        <button id="nav-collections" disabled>Коллекции</button>
+        <button id="nav-account" disabled>Аккаунт</button>
+        <button id="nav-logout" disabled>Выйти</button>
+    </nav>
+
+    <div id="messages"></div>
+
+    <div id="page-content">
+        <!-- content goes here -->
+    </div>
+</div>
+
+<script>
+    (() => {
+        const API_BASE = '/api';
+        let token = null;
+        let currentUserID = null;
+
+        // DOM Elements
+        const messagesEl = document.getElementById('messages');
+        const pageContentEl = document.getElementById('page-content');
+        const btnLoginNav = document.getElementById('nav-login');
+        const btnRegisterNav = document.getElementById('nav-register');
+        const btnDocumentsNav = document.getElementById('nav-documents');
+        const btnCollectionsNav = document.getElementById('nav-collections');
+        const btnAccountNav = document.getElementById('nav-account');
+        const btnLogoutNav = document.getElementById('nav-logout');
+
+        function clearMessages() {
+            messagesEl.innerHTML = '';
+        }
+
+        function showError(msg) {
+            messagesEl.innerHTML = `<div class="error">${msg}</div>`;
+        }
+
+        function showSuccess(msg) {
+            messagesEl.innerHTML = `<div class="success">${msg}</div>`;
+        }
+
+        function setAuth(tokenValue, userId) {
+            token = tokenValue;
+            currentUserID = userId;
+            if(token) {
+                btnDocumentsNav.disabled = false;
+                btnCollectionsNav.disabled = false;
+                btnAccountNav.disabled = false;
+                btnLogoutNav.disabled = false;
+                btnLoginNav.disabled = true;
+                btnRegisterNav.disabled = true;
+            } else {
+                btnDocumentsNav.disabled = true;
+                btnCollectionsNav.disabled = true;
+                btnAccountNav.disabled = true;
+                btnLogoutNav.disabled = true;
+                btnLoginNav.disabled = false;
+                btnRegisterNav.disabled = false;
+                currentUserID = null;
+            }
+        }
+
+        function authHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            };
+        }
+
+        // API helpers
+        async function postJson(url, data, withAuth = false) {
+            const headers = withAuth ? { ...authHeaders() } : { 'Content-Type': 'application/json' };
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(data)
+            });
+            return resp.json().then(json => {
+                if (!resp.ok) {
+                    throw new Error(json.error || JSON.stringify(json));
+                }
+                return json;
+            });
+        }
+
+        async function getJson(url) {
+            const resp = await fetch(url, { headers: authHeaders() });
+            const json = await resp.json();
+            if (!resp.ok) {
+                throw new Error(json.error || JSON.stringify(json));
+            }
+            return json;
+        }
+
+        async function patchJson(url, data) {
+            const resp = await fetch(url, {
+                method: 'PATCH',
+                headers: authHeaders(),
+                body: JSON.stringify(data)
+            });
+            const json = await resp.json();
+            if (!resp.ok) {
+                throw new Error(json.error || JSON.stringify(json));
+            }
+            return json;
+        }
+
+        async function deleteRequest(url) {
+            const resp = await fetch(url, {
+                method: 'DELETE',
+                headers: authHeaders(),
+            });
+            const json = await resp.json();
+            if (!resp.ok) {
+                throw new Error(json.error || JSON.stringify(json));
+            }
+            return json;
+        }
+
+        // Navigation and pages
+        btnLoginNav.addEventListener('click', () => {
+            clearMessages();
+            renderLogin();
+        });
+
+        btnRegisterNav.addEventListener('click', () => {
+            clearMessages();
+            renderRegister();
+        });
+
+        btnDocumentsNav.addEventListener('click', () => {
+            clearMessages();
+            renderDocuments();
+        });
+
+        btnCollectionsNav.addEventListener('click', () => {
+            clearMessages();
+            renderCollections();
+        });
+
+        btnAccountNav.addEventListener('click', () => {
+            clearMessages();
+            renderAccount();
+        });
+
+        btnLogoutNav.addEventListener('click', async () => {
+            clearMessages();
+            try {
+                await fetch('/api/logout', {
+                    headers: authHeaders()
+                });
+            } catch {
+                // ignore errors on logout
+            }
+            setAuth(null, null);
+            showSuccess('Вы вышли из аккаунта');
+            renderLogin();
+        });
+
+        // Render Login
+        function renderLogin() {
+            pageContentEl.innerHTML = `
+      <h2>Вход</h2>
+      <form id="login-form">
+        <label for="login-username">Имя пользователя</label>
+        <input id="login-username" type="text" autocomplete="username" required />
+        <label for="login-password">Пароль</label>
+        <input id="login-password" type="password" autocomplete="current-password" required />
+        <button type="submit">Войти</button>
+      </form>`;
+            const form = document.getElementById('login-form');
+            form.addEventListener('submit', async e => {
+                e.preventDefault();
+                clearMessages();
+                try {
+                    const username = form['login-username'].value.trim();
+                    const password = form['login-password'].value;
+                    const resp = await postJson('/login', { username, password });
+                    setAuth(resp.token, null);
+                    await fetchCurrentUserID();
+                    showSuccess(resp.message);
+                    renderDocuments();
+                } catch (err) {
+                    showError(err.message);
+                }
+            });
+        }
+
+        // Render Register
+        function renderRegister() {
+            pageContentEl.innerHTML = `
+      <h2>Регистрация</h2>
+      <form id="register-form">
+        <label for="register-username">Имя пользователя</label>
+        <input id="register-username" type="text" autocomplete="username" required />
+        <label for="register-password">Пароль</label>
+        <input id="register-password" type="password" autocomplete="new-password" required />
+        <button type="submit">Зарегистрироваться</button>
+      </form>`;
+            const form = document.getElementById('register-form');
+            form.addEventListener('submit', async e => {
+                e.preventDefault();
+                clearMessages();
+                try {
+                    const username = form['register-username'].value.trim();
+                    const password = form['register-password'].value;
+                    const resp = await postJson('/register', { username, password });
+                    setAuth(resp.token, null);
+                    await fetchCurrentUserID();
+                    showSuccess(resp.message);
+                    renderDocuments();
+                } catch (err) {
+                    showError(err.message);
+                }
+            });
+        }
+
+        // Fetch current user ID from token claims (since API does not provide a get current user endpoint)
+        async function fetchCurrentUserID() {
+            if (!token) return;
+            try {
+                const payload = token.split('.')[1];
+                const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+                const data = JSON.parse(json);
+                if (data.user_id) {
+                    currentUserID = data.user_id;
+                }
+            } catch {
+                currentUserID = null;
+            }
+        }
+
+        // Render Documents list with upload form and document detail/statistics
+        async function renderDocuments() {
+            pageContentEl.innerHTML = `
+      <h2>Мои документы</h2>
+      <form id="upload-form" enctype="multipart/form-data">
+        <label for="file-input">Загрузить файлы</label>
+        <input id="file-input" type="file" name="files" multiple required />
+        <button type="submit">Загрузить</button>
+      </form>
+      <div id="docs-list-area">
+        <h3>Список документов</h3>
+        <ul id="docs-list"></ul>
+      </div>
+      <div id="doc-detail" style="margin-top:20px;"></div>`;
+
+            const uploadForm = document.getElementById('upload-form');
+            uploadForm.addEventListener('submit', async e => {
+                e.preventDefault();
+                clearMessages();
+                try {
+                    const filesInput = document.getElementById('file-input');
+                    if (filesInput.files.length === 0) {
+                        showError('Выберите хотя бы один файл для загрузки.');
+                        return;
+                    }
+                    const formData = new FormData();
+                    for (const file of filesInput.files) {
+                        formData.append('files', file);
+                    }
+
+                    const resp = await fetch('/api/documents/upload', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token },
+                        body: formData
+                    });
+                    const json = await resp.json();
+                    if (!resp.ok) {
+                        if (json.errors) {
+                            showError(json.errors.join(', '));
+                        } else {
+                            showError(json.error || 'Ошибка загрузки файлов');
+                        }
+                        return;
+                    }
+                    showSuccess(json.message);
+                    await renderDocumentsList();
+                    document.getElementById('file-input').value = '';
+                } catch (err) {
+                    showError('Ошибка загрузки: ' + err.message);
+                }
+            });
+
+            await renderDocumentsList();
+            document.getElementById('doc-detail').innerHTML = '';
+        }
+
+        // Render documents list and setup click events
+        async function renderDocumentsList() {
+            clearMessages();
+            try {
+                const data = await getJson('/api/documents');
+                const listEl = document.getElementById('docs-list');
+                listEl.innerHTML = '';
+                if (!data.documents || data.documents.length === 0) {
+                    listEl.innerHTML = '<li>Нет загруженных документов.</li>';
+                    document.getElementById('doc-detail').innerHTML = '';
+                    return;
+                }
+                data.documents.forEach(doc => {
+                    const li = document.createElement('li');
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.textContent = doc.name;
+                    link.addEventListener('click', e => {
+                        e.preventDefault();
+                        renderDocumentDetail(doc.id);
+                    });
+                    li.appendChild(link);
+                    listEl.appendChild(li);
+                });
+                document.getElementById('doc-detail').innerHTML = '';
+            } catch (err) {
+                showError('Ошибка получения документов: ' + err.message);
+            }
+        }
+
+        // Render document detail and statistics with delete option
+        async function renderDocumentDetail(docID) {
+            clearMessages();
+            try {
+                const doc = await getJson(`/api/documents/${docID}`);
+                const stats = await getJson(`/api/documents/${docID}/statistics`);
+
+                let statsTable = '<p>Статистика недоступна</p>';
+                if (stats.statistics) {
+                    const keys = Object.keys(stats.statistics);
+                    if (keys.length > 0) {
+                        statsTable = `<table><thead><tr><th>Слово</th><th>TF</th><th>IDF</th></tr></thead><tbody>`;
+                        keys.forEach(word => {
+                            const item = stats.statistics[word];
+                            statsTable += `<tr><td>${word}</td><td>${item.tf.toFixed(5)}</td><td>${item.idf.toFixed(5)}</td></tr>`;
+                        });
+                        statsTable += '</tbody></table>';
+                    } else if (stats.message) {
+                        statsTable = `<p>${stats.message}</p>`;
+                    }
+                }
+
+                pageContentEl.querySelector('#doc-detail').innerHTML = `
+        <h3>Детали документа: ${escapeHtml(doc.name)}</h3>
+        <div class="content-block">${escapeHtml(doc.content)}</div>
+        <h4>TF-IDF статистика (топ 50)</h4>
+        ${statsTable}
+        <button id="delete-doc-btn">Удалить документ</button>
+      `;
+
+                document.getElementById('delete-doc-btn').onclick = async () => {
+                    if (!confirm(`Удалить документ "${doc.name}"?`)) return;
+                    try {
+                        await deleteRequest(`/api/documents/${docID}`);
+                        showSuccess('Документ удалён');
+                        renderDocuments();
+                    } catch (err) {
+                        showError('Ошибка удаления: ' + err.message);
+                    }
+                };
+
+            } catch (err) {
+                showError('Ошибка загрузки документа: ' + err.message);
+            }
+        }
+
+        // Render Collections list with create and details
+        async function renderCollections() {
+            pageContentEl.innerHTML = `
+      <h2>Мои коллекции</h2>
+      <form id="create-collection-form">
+        <label for="collection-name">Название коллекции</label>
+        <input id="collection-name" type="text" required />
+        <button type="submit">Создать коллекцию</button>
+      </form>
+      <div id="collections-list-area">
+        <h3>Список коллекций</h3>
+        <ul id="collections-list"></ul>
+      </div>
+      <div id="collection-detail" style="margin-top:20px;"></div>`;
+
+            const form = document.getElementById('create-collection-form');
+            form.addEventListener('submit', async e => {
+                e.preventDefault();
+                clearMessages();
+                try {
+                    const name = form['collection-name'].value.trim();
+                    if (!name) {
+                        showError('Введите название коллекции');
+                        return;
+                    }
+                    await postJson('/api/collections', { name }, true);
+                    showSuccess('Коллекция создана');
+                    form.reset();
+                    renderCollectionsList();
+                    document.getElementById('collection-detail').innerHTML = '';
+                } catch (err) {
+                    showError('Ошибка создания коллекции: ' + err.message);
+                }
+            });
+
+            await renderCollectionsList();
+            document.getElementById('collection-detail').innerHTML = '';
+        }
+
+        // Render collections list
+        async function renderCollectionsList() {
+            clearMessages();
+            try {
+                const data = await getJson('/api/collections');
+                const listEl = document.getElementById('collections-list');
+                listEl.innerHTML = '';
+                if (!data.collections || data.collections.length === 0) {
+                    listEl.innerHTML = '<li>Нет созданных коллекций.</li>';
+                    document.getElementById('collection-detail').innerHTML = '';
+                    return;
+                }
+                data.collections.forEach(col => {
+                    const li = document.createElement('li');
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.textContent = col.name;
+                    link.addEventListener('click', e => {
+                        e.preventDefault();
+                        renderCollectionDetail(col.id);
+                    });
+                    li.appendChild(link);
+                    listEl.appendChild(li);
+                });
+                document.getElementById('collection-detail').innerHTML = '';
+            } catch (err) {
+                showError('Ошибка получения коллекций: ' + err.message);
+            }
+        }
+
+        // Render collection details, documents in collection and collection stats, add/remove documents form
+        async function renderCollectionDetail(collectionID) {
+            clearMessages();
+            try {
+                const col = await getJson(`/api/collections/${collectionID}`);
+                const stats = await getJson(`/api/collections/${collectionID}/statistics`);
+
+                // List documents in collection
+                let docsListHtml = '';
+                if (col.documents && col.documents.length > 0) {
+                    docsListHtml = '<ul>';
+                    for (const doc of col.documents) {
+                        docsListHtml += `<li>${escapeHtml(doc.name)}
+            <button class="remove-doc-btn" data-docid="${doc.id}">Удалить из коллекции</button>
+          </li>`;
+                    }
+                    docsListHtml += '</ul>';
+                } else {
+                    docsListHtml = '<p>Нет документов в коллекции.</p>';
+                }
+
+                // Collection statistics table
+                let statsTable = '<p>Статистика недоступна</p>';
+                if (stats.statistics) {
+                    const keys = Object.keys(stats.statistics);
+                    if (keys.length > 0) {
+                        statsTable = `<table><thead><tr><th>Слово</th><th>TF</th><th>IDF</th></tr></thead><tbody>`;
+                        keys.forEach(word => {
+                            const item = stats.statistics[word];
+                            statsTable += `<tr><td>${word}</td><td>${item.tf.toFixed(5)}</td><td>${item.idf.toFixed(5)}</td></tr>`;
+                        });
+                        statsTable += '</tbody></table>';
+                    }
+                }
+
+                // Form for adding documents to collection
+                const allDocs = await getJson('/api/documents');
+                const docsNotInCollection = allDocs.documents.filter(d => !col.documents.some(cd => cd.id === d.id));
+                let addDocOptions = '';
+                if (docsNotInCollection.length > 0) {
+                    addDocOptions = docsNotInCollection.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+                }
+
+                pageContentEl.querySelector('#collection-detail').innerHTML = `
+        <h3>Коллекция: ${escapeHtml(col.name)}</h3>
+        <button id="delete-collection-btn">Удалить коллекцию</button>
+        <h4>Документы в коллекции</h4>
+        ${docsListHtml}
+        <form id="add-doc-form" style="margin-top:15px;">
+          <label for="doc-select">Добавить документ</label>
+          <select id="doc-select" required>
+            <option value="" disabled selected>Выберите документ</option>
+            ${addDocOptions}
+          </select>
+          <button type="submit" ${docsNotInCollection.length === 0 ? 'disabled' : ''}>Добавить</button>
+        </form>
+        <h4>Статистика коллекции (топ 50)</h4>
+        ${statsTable}
+      `;
+
+                document.getElementById('delete-collection-btn').onclick = async () => {
+                    if (!confirm(`Удалить коллекцию "${col.name}"? Это действие необратимо.`)) return;
+                    try {
+                        await deleteRequest(`/api/collections/${collectionID}`);
+                        showSuccess('Коллекция удалена');
+                        renderCollections();
+                    } catch (err) {
+                        showError('Ошибка удаления коллекции: ' + err.message);
+                    }
+                };
+
+                // Remove document buttons
+                Array.from(pageContentEl.querySelectorAll('.remove-doc-btn')).forEach(btn => {
+                    btn.onclick = async () => {
+                        const docId = btn.dataset.docid;
+                        if (!confirm('Удалить документ из коллекции?')) return;
+                        try {
+                            await deleteRequest(`/api/collection/${collectionID}/${docId}`);
+                            showSuccess('Документ удалён из коллекции');
+                            renderCollectionDetail(collectionID);
+                        } catch (err) {
+                            showError('Ошибка удаления документа из коллекции: ' + err.message);
+                        }
+                    };
+                });
+
+                // Add document form submit
+                const addForm = document.getElementById('add-doc-form');
+                addForm.onsubmit = async e => {
+                    e.preventDefault();
+                    clearMessages();
+                    const select = document.getElementById('doc-select');
+                    const docId = select.value;
+                    if (!docId) {
+                        showError('Выберите документ для добавления');
+                        return;
+                    }
+                    try {
+                        await postJson(`/api/collection/${collectionID}/${docId}`, null, true);
+                        showSuccess('Документ добавлен в коллекцию');
+                        renderCollectionDetail(collectionID);
+                    } catch (err) {
+                        showError('Ошибка добавления документа в коллекцию: ' + err.message);
+                    }
+                };
+
+            } catch (err) {
+                showError('Ошибка загрузки коллекции: ' + err.message);
+            }
+        }
+
+        // Render Account: change password and delete user
+        function renderAccount() {
+            if (!currentUserID) {
+                showError('Неизвестный пользователь');
+                setAuth(null, null);
+                renderLogin();
+                return;
+            }
+            pageContentEl.innerHTML = `
+      <h2>Аккаунт</h2>
+      <form id="change-password-form">
+        <label for="new-password">Новый пароль</label>
+        <input type="password" id="new-password" required />
+        <button type="submit">Изменить пароль</button>
+      </form>
+      <hr />
+      <button id="delete-user-btn" style="background-color:#dc3545;">Удалить пользователя</button>
+    `;
+
+            const changePassForm = document.getElementById('change-password-form');
+            changePassForm.addEventListener('submit', async e => {
+                e.preventDefault();
+                clearMessages();
+                const newPassword = changePassForm['new-password'].value;
+                if (!newPassword) {
+                    showError('Введите новый пароль');
+                    return;
+                }
+                try {
+                    await patchJson(`/api/user/${currentUserID}`, { new_password: newPassword });
+                    showSuccess('Пароль успешно изменён');
+                    changePassForm.reset();
+                } catch (err) {
+                    showError('Ошибка изменения пароля: ' + err.message);
+                }
+            });
+
+            const deleteUserBtn = document.getElementById('delete-user-btn');
+            deleteUserBtn.onclick = async () => {
+                if (!confirm('Вы действительно хотите удалить пользователя? Все данные будут безвозвратно удалены!')) return;
+                clearMessages();
+                try {
+                    await deleteRequest(`/api/user/${currentUserID}`);
+                    showSuccess('Пользователь удалён. Выполняется выход...');
+                    setAuth(null, null);
+                    setTimeout(() => renderLogin(), 1500);
+                } catch (err) {
+                    showError('Ошибка удаления пользователя: ' + err.message);
+                }
+            };
+        }
+
+        // Escape HTML utility
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialization: always show login page on load
+        function init() {
+            setAuth(null, null);
+            renderLogin();
+        }
+
+        init();
+    })();
+</script>
+</body>
+</html>

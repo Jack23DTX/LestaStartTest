@@ -15,6 +15,10 @@ import (
 func ChangePasswordAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	requestedID, _ := strconv.Atoi(c.Param("user_id"))
+	if uint(requestedID) != userID {
+		c.AbortWithStatus(403)
+		return
+	}
 
 	if uint(requestedID) != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
@@ -46,6 +50,10 @@ func ChangePasswordAPI(c *gin.Context) {
 func DeleteUserAPI(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
 	requestedID, _ := strconv.Atoi(c.Param("user_id"))
+	if userID != uint(requestedID) {
+		c.AbortWithStatus(403)
+		return
+	}
 
 	if uint(requestedID) != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})

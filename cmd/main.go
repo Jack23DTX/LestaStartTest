@@ -6,6 +6,7 @@ import (
 
 	"LestaStartTest/internal/controllers"
 	"LestaStartTest/internal/db"
+	"LestaStartTest/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -27,45 +28,48 @@ func main() {
 	// Инициализация роутеров и запуск сервера
 	r := gin.Default()
 
-	// Загрузка шаблонов страниц
-	r.LoadHTMLGlob("internal/templates/*.html")
+	// Раздаём папку static/ по корню
+	r.Static("/static", "./static")
 
-	// Публичные роутеры
-	r.GET("/login", controllers.LoginPage)
-	r.POST("/login", controllers.Login)
-	r.GET("/register", controllers.RegisterPage)
-	r.POST("/register", controllers.Register)
+	// Публичные API эндпоинты
+	r.POST("/login", controllers.LoginAPI)
+	r.POST("/register", controllers.RegisterAPI)
 
-	protected := r.Group("/")
-	protected.Use(controllers.AuthMiddleware())
+	protected := r.Group("/api")
+	protected.Use(middleware.JWTAuth(), middleware.Handle401())
 	{
-		// Веб-страницы
-		protected.GET("/", controllers.UploadPage)
-		protected.POST("/upload", controllers.UploadFileHandler)
-		protected.GET("/logout", controllers.Logout)
-
 		// Документы
 		protected.GET("/documents", controllers.ListDocumentsAPI)
+		protected.POST("/documents/upload", controllers.UploadAPI)
 		protected.GET("/documents/:id", controllers.GetDocumentAPI)
 		protected.GET("/documents/:id/statistics", controllers.DocumentStatisticsAPI)
 		protected.DELETE("/documents/:id", controllers.DeleteDocumentAPI)
 
 		// Коллекции
+		protected.POST("/collections", controllers.CreateCollectionAPI)
 		protected.GET("/collections", controllers.ListCollectionsAPI)
 		protected.GET("/collections/:id", controllers.GetCollectionAPI)
 		protected.GET("/collections/:id/statistics", controllers.CollectionStatisticsAPI)
-		protected.POST("/collections/:collection_id/:document_id", controllers.AddDocumentToCollectionAPI)
-		protected.DELETE("/collections/:collection_id/:document_id", controllers.RemoveDocumentFromCollectionAPI)
+		protected.POST("/collection/:collection_id/:document_id", controllers.AddDocumentToCollectionAPI)
+		protected.DELETE("/collection/:collection_id/:document_id", controllers.RemoveDocumentFromCollectionAPI)
+		protected.DELETE("/collections/:id", controllers.DeleteCollectionAPI)
 
 		// Пользователь
 		protected.PATCH("/user/:user_id", controllers.ChangePasswordAPI)
 		protected.DELETE("/user/:user_id", controllers.DeleteUserAPI)
+
+		// Аутентификация (выход из аккаунта)
+		protected.GET("/logout", controllers.LogoutAPI)
 	}
 
 	// Системные эндпойнты
-	r.GET("/status", controllers.StatusHandler)
-	r.GET("/metrics", controllers.MetricsHandler)
-	r.GET("/version", controllers.VersionHandler)
+	r.GET("/api/status", controllers.StatusHandler)
+	r.GET("/api/metrics", controllers.MetricsHandler)
+	r.GET("/api/version", controllers.VersionHandler)
+
+	r.NoRoute(func(c *gin.Context) {
+		c.File("./static/index.html")
+	})
 
 	// Запуск сервера
 	r.Run(port)

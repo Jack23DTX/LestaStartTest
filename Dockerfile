@@ -14,8 +14,12 @@ FROM alpine:latest
 WORKDIR /app
 
 COPY --from=builder /app/LestaStartTest .
-COPY --from=builder /app/internal/templates ./internal/templates
+
+COPY --from=builder /app/static ./static
+
 COPY .env .
+
+RUN mkdir uploads
 
 RUN apk add --no-cache libc6-compat
 
