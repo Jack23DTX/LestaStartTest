@@ -20,6 +20,12 @@ LestaStartTest — это веб-приложение, разработанно�
 LestaStartTest/
 ├── cmd/
 │   └── main.go                // Точка входа в приложение
+├── docs/
+│   ├── changelog.md           // История изменений проекта
+│   ├── database_schema.md     // Описание структуры базы данных
+│   ├── docs.go                // Генератор документации
+│   ├── swagger.json           // Swagger-документация (JSON)
+│   └── swagger.yaml           // Swagger-документация (YAML)
 ├── internal/
 │   ├── calculation/
 │   │   ├── calculation.go     // Логика вычисления TF-IDF
@@ -48,10 +54,7 @@ LestaStartTest/
 ├── docker-compose.yaml        // Конфигурация Docker Compose
 ├── Dockerfile                 // Dockerfile для сборки приложения
 ├── go.mod                     // Файл модулей Go
-├── README.md                  // Документация проекта
-└── docs/
-    ├── database_schema.md      // Описание структуры базы данных
-    ├── changelog.md            // История изменений проекта
+└── README.md                  // Документация проекта
 ```
 
 ---
