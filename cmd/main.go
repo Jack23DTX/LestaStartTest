@@ -8,6 +8,7 @@ import (
 	"LestaStartTest/internal/db"
 	"LestaStartTest/internal/middleware"
 
+	_ "LestaStartTest/docs"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
@@ -49,6 +50,7 @@ func main() {
 		protected.GET("/documents/:id", controllers.GetDocumentAPI)
 		protected.GET("/documents/:id/statistics", controllers.DocumentStatisticsAPI)
 		protected.DELETE("/documents/:id", controllers.DeleteDocumentAPI)
+		protected.GET("/documents/:id/huffman", controllers.HuffmanEncodeAPI)
 
 		// Коллекции
 		protected.POST("/collections", controllers.CreateCollectionAPI)

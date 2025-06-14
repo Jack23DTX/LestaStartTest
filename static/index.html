@@ -25,6 +25,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { text-align: left; padding: 6px 8px; border: 1px solid #ccc; }
         th { background: #007bff; color: white; }
+        pre { white-space: pre-wrap; word-break: break-word; background: #eee; padding: 10px; border-radius: 4px; max-height: 300px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -110,19 +111,18 @@
                 headers,
                 body: JSON.stringify(data)
             });
-            return resp.json().then(json => {
-                if (!resp.ok) {
-                    throw new Error(json.error || JSON.stringify(json));
-                }
-                return json;
-            });
+            const json = await resp.json().catch(() => null);
+            if (!resp.ok) {
+                throw new Error(json?.error || JSON.stringify(json));
+            }
+            return json;
         }
 
         async function getJson(url) {
             const resp = await fetch(url, { headers: authHeaders() });
-            const json = await resp.json();
+            const json = await resp.json().catch(() => null);
             if (!resp.ok) {
-                throw new Error(json.error || JSON.stringify(json));
+                throw new Error(json?.error || JSON.stringify(json));
             }
             return json;
         }
@@ -133,9 +133,9 @@
                 headers: authHeaders(),
                 body: JSON.stringify(data)
             });
-            const json = await resp.json();
+            const json = await resp.json().catch(() => null);
             if (!resp.ok) {
-                throw new Error(json.error || JSON.stringify(json));
+                throw new Error(json?.error || JSON.stringify(json));
             }
             return json;
         }
@@ -145,9 +145,9 @@
                 method: 'DELETE',
                 headers: authHeaders(),
             });
-            const json = await resp.json();
+            const json = await resp.json().catch(() => null);
             if (!resp.ok) {
-                throw new Error(json.error || JSON.stringify(json));
+                throw new Error(json?.error || JSON.stringify(json));
             }
             return json;
         }
@@ -184,9 +184,7 @@
                 await fetch('/api/logout', {
                     headers: authHeaders()
                 });
-            } catch {
-                // ignore errors on logout
-            }
+            } catch { }
             setAuth(null, null);
             showSuccess('Вы вышли из аккаунта');
             renderLogin();
@@ -265,7 +263,7 @@
             }
         }
 
-        // Render Documents list with upload form and document detail/statistics
+        // Render Documents list with upload form and document detail/statistics and Huffman code
         async function renderDocuments() {
             pageContentEl.innerHTML = `
       <h2>Мои документы</h2>
@@ -321,7 +319,7 @@
             document.getElementById('doc-detail').innerHTML = '';
         }
 
-        // Render documents list and setup click events
+        // Render documents list with additional Huffman code button
         async function renderDocumentsList() {
             clearMessages();
             try {
@@ -335,14 +333,23 @@
                 }
                 data.documents.forEach(doc => {
                     const li = document.createElement('li');
+
                     const link = document.createElement('a');
                     link.href = '#';
                     link.textContent = doc.name;
+                    link.style.marginRight = '8px';
                     link.addEventListener('click', e => {
                         e.preventDefault();
                         renderDocumentDetail(doc.id);
                     });
+
+                    const huffmanBtn = document.createElement('button');
+                    huffmanBtn.textContent = 'Хаффман-код';
+                    huffmanBtn.style.marginLeft = '5px';
+                    huffmanBtn.onclick = () => renderDocumentHuffman(doc.id, doc.name);
+
                     li.appendChild(link);
+                    li.appendChild(huffmanBtn);
                     listEl.appendChild(li);
                 });
                 document.getElementById('doc-detail').innerHTML = '';
@@ -365,11 +372,11 @@
                         statsTable = `<table><thead><tr><th>Слово</th><th>TF</th><th>IDF</th></tr></thead><tbody>`;
                         keys.forEach(word => {
                             const item = stats.statistics[word];
-                            statsTable += `<tr><td>${word}</td><td>${item.tf.toFixed(5)}</td><td>${item.idf.toFixed(5)}</td></tr>`;
+                            statsTable += `<tr><td>${escapeHtml(word)}</td><td>${item.tf.toFixed(5)}</td><td>${item.idf.toFixed(5)}</td></tr>`;
                         });
                         statsTable += '</tbody></table>';
                     } else if (stats.message) {
-                        statsTable = `<p>${stats.message}</p>`;
+                        statsTable = `<p>${escapeHtml(stats.message)}</p>`;
                     }
                 }
 
@@ -394,6 +401,32 @@
 
             } catch (err) {
                 showError('Ошибка загрузки документа: ' + err.message);
+            }
+        }
+
+        // Render Huffman encoded content of document
+        async function renderDocumentHuffman(docID, docName) {
+            clearMessages();
+            try {
+                const resp = await fetch(`/api/documents/${docID}/huffman`, {
+                    headers: authHeaders()
+                });
+                if (!resp.ok) {
+                    const json = await resp.json().catch(() => null);
+                    throw new Error(json?.error || 'Ошибка получения Хаффман-кода');
+                }
+                const data = await resp.json();
+
+                pageContentEl.querySelector('#doc-detail').innerHTML = `
+        <h3>Хаффман-код документа: ${escapeHtml(docName)}</h3>
+        <pre>${escapeHtml(data.huffman_encoded)}</pre>
+        <button id="back-to-doc-btn">Назад</button>
+      `;
+
+                document.getElementById('back-to-doc-btn').onclick = () => renderDocumentDetail(docID);
+
+            } catch (err) {
+                showError(err.message);
             }
         }
 
@@ -495,7 +528,7 @@
                         statsTable = `<table><thead><tr><th>Слово</th><th>TF</th><th>IDF</th></tr></thead><tbody>`;
                         keys.forEach(word => {
                             const item = stats.statistics[word];
-                            statsTable += `<tr><td>${word}</td><td>${item.tf.toFixed(5)}</td><td>${item.idf.toFixed(5)}</td></tr>`;
+                            statsTable += `<tr><td>${escapeHtml(word)}</td><td>${item.tf.toFixed(5)}</td><td>${item.idf.toFixed(5)}</td></tr>`;
                         });
                         statsTable += '</tbody></table>';
                     }

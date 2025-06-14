@@ -246,7 +246,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.CreateCollectionRequest"
+                            "$ref": "#/definitions/internal_controllers.CreateCollectionRequest"
                         }
                     }
                 ],
@@ -427,7 +427,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/controllers.DocumentResponse"
+                                "$ref": "#/definitions/internal_controllers.DocumentResponse"
                             }
                         }
                     },
@@ -519,7 +519,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.DocumentResponse"
+                            "$ref": "#/definitions/internal_controllers.DocumentResponse"
                         }
                     },
                     "404": {
@@ -572,6 +572,65 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Failed to clear associations or failed to delete",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/documents/{id}/huffman": {
+            "get": {
+                "description": "Кодирует содержимое документа с использованием алгоритма Хаффмана.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Документы"
+                ],
+                "summary": "Кодирование документа",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID документа",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Закодированное содержимое документа",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid document ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Document not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Encoding failed",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -661,7 +720,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.AuthRequest"
+                            "$ref": "#/definitions/internal_controllers.AuthRequest"
                         }
                     }
                 ],
@@ -669,7 +728,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.AuthResponse"
+                            "$ref": "#/definitions/internal_controllers.AuthResponse"
                         }
                     },
                     "400": {
@@ -736,7 +795,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.AuthRequest"
+                            "$ref": "#/definitions/internal_controllers.AuthRequest"
                         }
                     }
                 ],
@@ -744,7 +803,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.AuthResponse"
+                            "$ref": "#/definitions/internal_controllers.AuthResponse"
                         }
                     },
                     "400": {
@@ -880,7 +939,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "controllers.AuthRequest": {
+        "internal_controllers.AuthRequest": {
             "type": "object",
             "required": [
                 "password",
@@ -895,7 +954,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.AuthResponse": {
+        "internal_controllers.AuthResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -906,7 +965,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.CreateCollectionRequest": {
+        "internal_controllers.CreateCollectionRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -917,7 +976,7 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.DocumentResponse": {
+        "internal_controllers.DocumentResponse": {
             "type": "object",
             "properties": {
                 "content": {

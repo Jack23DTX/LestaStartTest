@@ -219,3 +219,46 @@ func DeleteDocumentAPI(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Document deleted"})
 }
+
+// HuffmanEncodeAPI - кодирование документа с использованием алгоритма Хаффмана
+// @Summary Кодирование документа
+// @Description Кодирует содержимое документа с использованием алгоритма Хаффмана.
+// @Tags Документы
+// @Produce json
+// @Param id path int true "ID документа"
+// @Success 200 {object} map[string]string "Закодированное содержимое документа"
+// @Failure 400 {object} map[string]string "Invalid document ID"
+// @Failure 404 {object} map[string]string "Document not found"
+// @Failure 500 {object} map[string]string "Encoding failed"
+// @Router /documents/{id}/huffman [get]
+func HuffmanEncodeAPI(c *gin.Context) {
+	documentID := c.Param("id")
+	userID := c.MustGet("userID").(uint)
+
+	id, err := strconv.Atoi(documentID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid document ID"})
+	}
+	var document models.Document
+	if err := db.DB.Where("id = ? AND user_id = ?", id, userID).First(&document).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
+		return
+	}
+
+	const maxSize = 10 * 1024 * 1024 // ограничение по памяти документа (10MB)
+	if len(document.Content) > maxSize {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Document content too large"})
+		return
+	}
+
+	encodedContent, err := calculation.Encode(document.Content)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode document"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"document_id":     document.ID,
+		"huffman_encoded": encodedContent,
+	})
+}

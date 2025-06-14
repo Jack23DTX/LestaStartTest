@@ -1,5 +1,5 @@
 definitions:
-  controllers.AuthRequest:
+  internal_controllers.AuthRequest:
     properties:
       password:
         type: string
@@ -9,21 +9,21 @@ definitions:
     - password
     - username
     type: object
-  controllers.AuthResponse:
+  internal_controllers.AuthResponse:
     properties:
       message:
         type: string
       user_id:
         type: integer
     type: object
-  controllers.CreateCollectionRequest:
+  internal_controllers.CreateCollectionRequest:
     properties:
       name:
         type: string
     required:
     - name
     type: object
-  controllers.DocumentResponse:
+  internal_controllers.DocumentResponse:
     properties:
       content:
         type: string
@@ -33,9 +33,7 @@ definitions:
         type: string
     type: object
 info:
-  contact: { }
-  title: "Document Management API"
-  version: "1.0.0"
+  contact: {}
 paths:
   /api/metrics:
     get:
@@ -188,7 +186,7 @@ paths:
         name: CreateCollectionRequest
         required: true
         schema:
-          $ref: '#/definitions/controllers.CreateCollectionRequest'
+          $ref: '#/definitions/internal_controllers.CreateCollectionRequest'
       produces:
       - application/json
       responses:
@@ -309,7 +307,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/controllers.DocumentResponse'
+              $ref: '#/definitions/internal_controllers.DocumentResponse'
             type: array
         "500":
           description: Database error
@@ -367,7 +365,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.DocumentResponse'
+            $ref: '#/definitions/internal_controllers.DocumentResponse'
         "404":
           description: Document not found
           schema:
@@ -375,6 +373,45 @@ paths:
               type: string
             type: object
       summary: Получение документа
+      tags:
+      - Документы
+  /documents/{id}/huffman:
+    get:
+      description: Кодирует содержимое документа с использованием алгоритма Хаффмана.
+      parameters:
+      - description: ID документа
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Закодированное содержимое документа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid document ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Document not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Encoding failed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Кодирование документа
       tags:
       - Документы
   /documents/{id}/statistics:
@@ -463,14 +500,14 @@ paths:
         name: AuthRequest
         required: true
         schema:
-          $ref: '#/definitions/controllers.AuthRequest'
+          $ref: '#/definitions/internal_controllers.AuthRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.AuthResponse'
+            $ref: '#/definitions/internal_controllers.AuthResponse'
         "400":
           description: Invalid request body
           schema:
@@ -512,14 +549,14 @@ paths:
         name: AuthRequest
         required: true
         schema:
-          $ref: '#/definitions/controllers.AuthRequest'
+          $ref: '#/definitions/internal_controllers.AuthRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.AuthResponse'
+            $ref: '#/definitions/internal_controllers.AuthResponse'
         "400":
           description: Invalid request
           schema:
