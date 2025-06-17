@@ -12,15 +12,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// ChangePasswordAPI - изменение пароля пользователя
-// @Summary Изменение пароля
-// @Description Обновление пароля пользователя.
+// ChangePasswordRequest - необходима, чтобы swag не ругался на анонимную структуру, и документация сгенерировалась корректно
+type ChangePasswordRequest struct {
+	NewPassword string `json:"new_password"`
+}
+
+// ChangePasswordAPI – изменение пароля
+// @Summary Изменение пароля пользователя
+// @Description Обновляет пароль текущего пользователя.
 // @Tags Пользователь
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param user_id path int true "ID пользователя"
-// @Param NewPassword body string true "Новый пароль"
-// @Success 200 {object} map[string]string "Password updated"
+// @Param body body ChangePasswordRequest true "Новый пароль"
+// @Success 200 {object} map[string]string "{"message":"Password updated"}"
 // @Failure 400 {object} map[string]string "Invalid input"
 // @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 500 {object} map[string]string "Password update failed or database error"
@@ -60,13 +66,14 @@ func ChangePasswordAPI(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated"})
 }
 
-// DeleteUserAPI - удаление пользователя
+// DeleteUserAPI – удаление пользователя
 // @Summary Удаление пользователя
-// @Description Удаление пользователя, его документы и коллекции.
+// @Description Удаляет пользователя, его документы и коллекции.
 // @Tags Пользователь
+// @Security BearerAuth
 // @Produce json
 // @Param user_id path int true "ID пользователя"
-// @Success 200 {object} map[string]string "User deleted"
+// @Success 200 {object} map[string]string "{"message":"User deleted"}"
 // @Failure 403 {object} map[string]string "Forbidden"
 // @Router /user/{user_id} [delete]
 func DeleteUserAPI(c *gin.Context) {

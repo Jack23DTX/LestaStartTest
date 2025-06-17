@@ -39,17 +39,18 @@ type UploadResult struct {
 	TopWords  []WordStat       `json:"top_words"`
 }
 
-// UploadAPI - загрузка файлов через API
+// UploadAPI – загрузка документов
 // @Summary Загрузка файлов
-// @Description Загружает файлы, обрабатывает их содержимое и сохраняет в базе данных.
+// @Description Загружает один или несколько файлов, обрабатывает и сохраняет их.
 // @Tags Документы
+// @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
-// @Param files formData file true "Файлы для загрузки"
-// @Success 200 {object} map[string]string "Files uploaded and processed successfully"
+// @Param files formData []file true "Файлы для загрузки" collectionFormat(multi)
+// @Success 200 {object} map[string]interface{} "{"message":string,"data":UploadResult}"
 // @Failure 400 {object} map[string]string "Error getting files or no files uploaded"
-// @Failure 500 {object} map[string]string "Failed to save files or process documents"
-// @Router /documents/upload [post]
+// @Failure 500 {object} map[string]interface{} "{"errors":[]string}"
+// @Router /api/documents/upload [post]
 func UploadAPI(c *gin.Context) {
 	start := time.Now() // Фиксируем время начала обработки
 	userID := c.MustGet("userID").(uint)

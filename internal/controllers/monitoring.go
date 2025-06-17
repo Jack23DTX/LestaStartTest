@@ -9,9 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// StatusHandler - статус приложения
+// StatusHandler – статус приложения
 // @Summary Статус приложения
-// @Description Проверяет состояние приложения.
+// @Description Проверяет, что сервис запущен.
 // @Tags Системные
 // @Produce json
 // @Success 200 {object} map[string]string "Application is running"
@@ -20,9 +20,9 @@ func StatusHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }
 
-// MetricsHandler - метрики приложения
-// @Summary Метрики приложения
-// @Description Возвращает статистику обработки документов.
+// MetricsHandler – метрики приложения
+// @Summary Метрики обработки документов
+// @Description Возвращает общее число обработанных документов и среднее время обработки (нс).
 // @Tags Системные
 // @Produce json
 // @Success 200 {object} map[string]string "Application metrics"
@@ -35,9 +35,9 @@ func MetricsHandler(c *gin.Context) {
 	})
 }
 
-// VersionHandler - версия приложения
-// @Summary Версия приложения
-// @Description Возвращает текущую версию приложения.
+// VersionHandler – версия приложения
+// @Summary Текущая версия приложения
+// @Description Возвращает значение переменной окружения VERSION.
 // @Tags Системные
 // @Produce json
 // @Success 200 {object} map[string]string "Application version"

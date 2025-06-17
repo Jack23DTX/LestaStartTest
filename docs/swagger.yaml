@@ -9,12 +9,10 @@ definitions:
     - password
     - username
     type: object
-  internal_controllers.AuthResponse:
+  internal_controllers.ChangePasswordRequest:
     properties:
-      message:
+      new_password:
         type: string
-      user_id:
-        type: integer
     type: object
   internal_controllers.CreateCollectionRequest:
     properties:
@@ -34,55 +32,13 @@ definitions:
     type: object
 info:
   contact: {}
+  description: Сервис для загрузки документов, подсчёта TF‑IDF и управления коллекциями.
+  title: LestaStartTest API
+  version: 2.2.1
 paths:
-  /api/metrics:
-    get:
-      description: Возвращает статистику обработки документов.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Application metrics
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Метрики приложения
-      tags:
-      - Системные
-  /api/status:
-    get:
-      description: Проверяет состояние приложения.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Application is running
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Статус приложения
-      tags:
-      - Системные
-  /api/version:
-    get:
-      description: Возвращает текущую версию приложения.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Application version
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Версия приложения
-      tags:
-      - Системные
-  /collection/{collection_id}/{document_id}:
+  /api/collection/{collection_id}/{document_id}:
     delete:
-      description: Удаляет документ из коллекции пользователя.
+      description: Убирает документ из коллекции и обновляет IDF.
       parameters:
       - description: ID коллекции
         in: path
@@ -98,7 +54,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Document removed from collection
+          description: '{"message":"Document removed from collection"}'
           schema:
             additionalProperties:
               type: string
@@ -110,16 +66,18 @@ paths:
               type: string
             type: object
         "500":
-          description: Failed to remove document
+          description: Failed to remove document or update IDF
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Удаление документа из коллекции
       tags:
       - Коллекции
     post:
-      description: Добавляет документ в коллекцию пользователя.
+      description: Присоединяет документ к коллекции и обновляет IDF.
       parameters:
       - description: ID коллекции
         in: path
@@ -135,7 +93,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Document added to collection
+          description: '{"message":"Document added to collection"}'
           schema:
             additionalProperties:
               type: string
@@ -152,20 +110,21 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Добавление документа в коллекцию
       tags:
       - Коллекции
-  /collections:
+  /api/collections:
     get:
-      description: Возвращает список коллекций, принадлежащих пользователю.
+      description: Возвращает все коллекции пользователя.
       produces:
       - application/json
       responses:
         "200":
-          description: Collections
+          description: '{"collections":[]map[string]interface{}}'
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "500":
           description: Database error
@@ -173,17 +132,19 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Список коллекций
       tags:
       - Коллекции
     post:
       consumes:
       - application/json
-      description: Создает новую коллекцию для пользователя.
+      description: Создаёт новую коллекцию для пользователя.
       parameters:
       - description: Данные коллекции
         in: body
-        name: CreateCollectionRequest
+        name: body
         required: true
         schema:
           $ref: '#/definitions/internal_controllers.CreateCollectionRequest'
@@ -191,10 +152,9 @@ paths:
       - application/json
       responses:
         "201":
-          description: Collection created
+          description: '{"id":int,"name":string}'
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
           description: Invalid request
@@ -208,12 +168,14 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Создание коллекции
       tags:
       - Коллекции
-  /collections/{id}:
+  /api/collections/{id}:
     delete:
-      description: Удаляет коллекцию и связанные данные.
+      description: Удаляет коллекцию и все связанные IDF.
       parameters:
       - description: ID коллекции
         in: path
@@ -224,7 +186,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Collection deleted
+          description: '{"message":"Collection deleted"}'
           schema:
             additionalProperties:
               type: string
@@ -241,11 +203,13 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Удаление коллекции
       tags:
       - Коллекции
     get:
-      description: Возвращает информацию о коллекции.
+      description: Возвращает коллекцию и список её документов.
       parameters:
       - description: ID коллекции
         in: path
@@ -256,10 +220,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Collection details
+          description: '{"id":int,"name":string,"documents":[]map[string]interface{}}'
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "404":
           description: Collection not found
@@ -267,12 +230,14 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Получение коллекции
+      security:
+      - BearerAuth: []
+      summary: Получение коллекции по ID
       tags:
       - Коллекции
-  /collections/{id}/statistics:
+  /api/collections/{id}/statistics:
     get:
-      description: Рассчитывает TF-IDF статистику для коллекции.
+      description: Рассчитывает TF‑IDF внутри всех документов коллекции.
       parameters:
       - description: ID коллекции
         in: path
@@ -283,10 +248,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Statistics
+          description: '{"collection_id":int,"statistics":map[string]object}'
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "404":
           description: Collection not found
@@ -294,33 +258,36 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Статистика коллекции
+      security:
+      - BearerAuth: []
+      summary: TF‑IDF статистика коллекции
       tags:
       - Коллекции
-  /documents:
+  /api/documents:
     get:
-      description: Возвращает список документов, принадлежащих пользователю.
+      description: Возвращает все документы текущего пользователя.
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: '{"documents":[]DocumentResponse}'
           schema:
-            items:
-              $ref: '#/definitions/internal_controllers.DocumentResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "500":
           description: Database error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Список документов
       tags:
       - Документы
-  /documents/{id}:
+  /api/documents/{id}:
     delete:
-      description: Удаляет документ и связанные данные.
+      description: Удаляет документ, все связи и физический файл.
       parameters:
       - description: ID документа
         in: path
@@ -331,7 +298,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Successfully deleted
+          description: '{"message":"Document deleted"}'
           schema:
             additionalProperties:
               type: string
@@ -343,16 +310,18 @@ paths:
               type: string
             type: object
         "500":
-          description: Failed to clear associations or failed to delete
+          description: Failed to delete document
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Удаление документа
       tags:
       - Документы
     get:
-      description: Возвращает информацию о документе.
+      description: Возвращает имя и содержимое документа по его ID.
       parameters:
       - description: ID документа
         in: path
@@ -372,12 +341,14 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Получение документа
       tags:
       - Документы
-  /documents/{id}/huffman:
+  /api/documents/{id}/huffman:
     get:
-      description: Кодирует содержимое документа с использованием алгоритма Хаффмана.
+      description: Возвращает закодированное представление содержимого документа.
       parameters:
       - description: ID документа
         in: path
@@ -388,13 +359,12 @@ paths:
       - application/json
       responses:
         "200":
-          description: Закодированное содержимое документа
+          description: '{"document_id":int,"huffman_encoded":string}'
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
-          description: Invalid document ID
+          description: Invalid document ID or content too large
           schema:
             additionalProperties:
               type: string
@@ -411,12 +381,15 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Кодирование документа
+      security:
+      - BearerAuth: []
+      summary: Кодирование документа алгоритмом Хаффмана
       tags:
       - Документы
-  /documents/{id}/statistics:
+  /api/documents/{id}/statistics:
     get:
-      description: Рассчитывает TF-IDF статистику для документа.
+      description: Рассчитывает TF‑IDF слова внутри всех коллекций, где есть этот
+        документ.
       parameters:
       - description: ID документа
         in: path
@@ -427,10 +400,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Statistics
+          description: '{"document_id":int,"statistics":map[string]object}'
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
           description: Document is not in any collection
@@ -450,29 +422,32 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Статистика документа
+      security:
+      - BearerAuth: []
+      summary: TF‑IDF статистика документа
       tags:
       - Документы
-  /documents/upload:
+  /api/documents/upload:
     post:
       consumes:
       - multipart/form-data
-      description: Загружает файлы, обрабатывает их содержимое и сохраняет в базе
-        данных.
+      description: Загружает один или несколько файлов, обрабатывает и сохраняет их.
       parameters:
-      - description: Файлы для загрузки
+      - collectionFormat: multi
+        description: Файлы для загрузки
         in: formData
+        items:
+          type: file
         name: files
         required: true
-        type: file
+        type: array
       produces:
       - application/json
       responses:
         "200":
-          description: Files uploaded and processed successfully
+          description: '{"message":string,"data":UploadResult}'
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
           description: Error getting files or no files uploaded
@@ -481,23 +456,87 @@ paths:
               type: string
             type: object
         "500":
-          description: Failed to save files or process documents
+          description: '{"errors":[]string}'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Загрузка файлов
+      tags:
+      - Документы
+  /api/logout:
+    get:
+      description: Завершает сессию пользователя (удаляет куки).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"message":"Logged out"}'
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Загрузка файлов
+      security:
+      - BearerAuth: []
+      summary: Выход из аккаунта
       tags:
-      - Документы
+      - Пользователь
+  /api/metrics:
+    get:
+      description: Возвращает общее число обработанных документов и среднее время
+        обработки (нс).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Application metrics
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Метрики обработки документов
+      tags:
+      - Системные
+  /api/status:
+    get:
+      description: Проверяет, что сервис запущен.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Application is running
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Статус приложения
+      tags:
+      - Системные
+  /api/version:
+    get:
+      description: Возвращает значение переменной окружения VERSION.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Application version
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Текущая версия приложения
+      tags:
+      - Системные
   /login:
     post:
       consumes:
       - application/json
-      description: Проверка учетных данных и генерация JWT токена.
+      description: Проверяет учётные данные и возвращает JWT‑токен.
       parameters:
       - description: Данные для аутентификации
         in: body
-        name: AuthRequest
+        name: body
         required: true
         schema:
           $ref: '#/definitions/internal_controllers.AuthRequest'
@@ -505,9 +544,10 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: '{"message":string,"token":string}'
           schema:
-            $ref: '#/definitions/internal_controllers.AuthResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Invalid request body
           schema:
@@ -523,30 +563,15 @@ paths:
       summary: Аутентификация пользователя
       tags:
       - Пользователь
-  /logout:
-    get:
-      description: Завершение сеанса пользователя.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully logged out
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Выход из аккаунта
-      tags:
-      - Пользователь
   /register:
     post:
       consumes:
       - application/json
-      description: Создание учетной записи пользователя.
+      description: Создаёт нового пользователя и возвращает JWT‑токен.
       parameters:
       - description: Данные для регистрации
         in: body
-        name: AuthRequest
+        name: body
         required: true
         schema:
           $ref: '#/definitions/internal_controllers.AuthRequest'
@@ -554,9 +579,10 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: '{"message":string,"token":string}'
           schema:
-            $ref: '#/definitions/internal_controllers.AuthResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Invalid request
           schema:
@@ -569,12 +595,12 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Регистрация нового пользователя
+      summary: Регистрация пользователя
       tags:
       - Пользователь
   /user/{user_id}:
     delete:
-      description: Удаление пользователя, его документы и коллекции.
+      description: Удаляет пользователя, его документы и коллекции.
       parameters:
       - description: ID пользователя
         in: path
@@ -585,7 +611,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: User deleted
+          description: '{"message":"User deleted"}'
           schema:
             additionalProperties:
               type: string
@@ -596,13 +622,15 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Удаление пользователя
       tags:
       - Пользователь
     patch:
       consumes:
       - application/json
-      description: Обновление пароля пользователя.
+      description: Обновляет пароль текущего пользователя.
       parameters:
       - description: ID пользователя
         in: path
@@ -611,15 +639,15 @@ paths:
         type: integer
       - description: Новый пароль
         in: body
-        name: NewPassword
+        name: body
         required: true
         schema:
-          type: string
+          $ref: '#/definitions/internal_controllers.ChangePasswordRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: Password updated
+          description: '{"message":"Password updated"}'
           schema:
             additionalProperties:
               type: string
@@ -642,7 +670,16 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Изменение пароля
+      security:
+      - BearerAuth: []
+      summary: Изменение пароля пользователя
       tags:
       - Пользователь
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

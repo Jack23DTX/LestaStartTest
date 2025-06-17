@@ -15,78 +15,14 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/metrics": {
-            "get": {
-                "description": "Возвращает статистику обработки документов.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Системные"
-                ],
-                "summary": "Метрики приложения",
-                "responses": {
-                    "200": {
-                        "description": "Application metrics",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/status": {
-            "get": {
-                "description": "Проверяет состояние приложения.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Системные"
-                ],
-                "summary": "Статус приложения",
-                "responses": {
-                    "200": {
-                        "description": "Application is running",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/version": {
-            "get": {
-                "description": "Возвращает текущую версию приложения.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Системные"
-                ],
-                "summary": "Версия приложения",
-                "responses": {
-                    "200": {
-                        "description": "Application version",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/collection/{collection_id}/{document_id}": {
+        "/api/collection/{collection_id}/{document_id}": {
             "post": {
-                "description": "Добавляет документ в коллекцию пользователя.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Присоединяет документ к коллекции и обновляет IDF.",
                 "produces": [
                     "application/json"
                 ],
@@ -112,7 +48,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Document added to collection",
+                        "description": "{\"message\":\"Document added to collection\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -141,7 +77,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Удаляет документ из коллекции пользователя.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Убирает документ из коллекции и обновляет IDF.",
                 "produces": [
                     "application/json"
                 ],
@@ -167,7 +108,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Document removed from collection",
+                        "description": "{\"message\":\"Document removed from collection\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -185,7 +126,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Failed to remove document",
+                        "description": "Failed to remove document or update IDF",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -196,9 +137,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/collections": {
+        "/api/collections": {
             "get": {
-                "description": "Возвращает список коллекций, принадлежащих пользователю.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает все коллекции пользователя.",
                 "produces": [
                     "application/json"
                 ],
@@ -208,12 +154,10 @@ const docTemplate = `{
                 "summary": "Список коллекций",
                 "responses": {
                     "200": {
-                        "description": "Collections",
+                        "description": "{\"collections\":[]map[string]interface{}}",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "500": {
@@ -228,7 +172,12 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Создает новую коллекцию для пользователя.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создаёт новую коллекцию для пользователя.",
                 "consumes": [
                     "application/json"
                 ],
@@ -242,7 +191,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "Данные коллекции",
-                        "name": "CreateCollectionRequest",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -252,12 +201,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Collection created",
+                        "description": "{\"id\":int,\"name\":string}",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -281,16 +228,21 @@ const docTemplate = `{
                 }
             }
         },
-        "/collections/{id}": {
+        "/api/collections/{id}": {
             "get": {
-                "description": "Возвращает информацию о коллекции.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает коллекцию и список её документов.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Коллекции"
                 ],
-                "summary": "Получение коллекции",
+                "summary": "Получение коллекции по ID",
                 "parameters": [
                     {
                         "type": "integer",
@@ -302,12 +254,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Collection details",
+                        "description": "{\"id\":int,\"name\":string,\"documents\":[]map[string]interface{}}",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "404": {
@@ -322,7 +272,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Удаляет коллекцию и связанные данные.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет коллекцию и все связанные IDF.",
                 "produces": [
                     "application/json"
                 ],
@@ -341,7 +296,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Collection deleted",
+                        "description": "{\"message\":\"Collection deleted\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -370,16 +325,21 @@ const docTemplate = `{
                 }
             }
         },
-        "/collections/{id}/statistics": {
+        "/api/collections/{id}/statistics": {
             "get": {
-                "description": "Рассчитывает TF-IDF статистику для коллекции.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Рассчитывает TF‑IDF внутри всех документов коллекции.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Коллекции"
                 ],
-                "summary": "Статистика коллекции",
+                "summary": "TF‑IDF статистика коллекции",
                 "parameters": [
                     {
                         "type": "integer",
@@ -391,12 +351,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Statistics",
+                        "description": "{\"collection_id\":int,\"statistics\":map[string]object}",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "404": {
@@ -411,9 +369,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/documents": {
+        "/api/documents": {
             "get": {
-                "description": "Возвращает список документов, принадлежащих пользователю.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает все документы текущего пользователя.",
                 "produces": [
                     "application/json"
                 ],
@@ -423,12 +386,10 @@ const docTemplate = `{
                 "summary": "Список документов",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "{\"documents\":[]DocumentResponse}",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/internal_controllers.DocumentResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "500": {
@@ -443,9 +404,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/documents/upload": {
+        "/api/documents/upload": {
             "post": {
-                "description": "Загружает файлы, обрабатывает их содержимое и сохраняет в базе данных.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Загружает один или несколько файлов, обрабатывает и сохраняет их.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -458,7 +424,11 @@ const docTemplate = `{
                 "summary": "Загрузка файлов",
                 "parameters": [
                     {
-                        "type": "file",
+                        "type": "array",
+                        "items": {
+                            "type": "file"
+                        },
+                        "collectionFormat": "multi",
                         "description": "Файлы для загрузки",
                         "name": "files",
                         "in": "formData",
@@ -467,12 +437,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Files uploaded and processed successfully",
+                        "description": "{\"message\":string,\"data\":UploadResult}",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -485,20 +453,23 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Failed to save files or process documents",
+                        "description": "{\"errors\":[]string}",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/documents/{id}": {
+        "/api/documents/{id}": {
             "get": {
-                "description": "Возвращает информацию о документе.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает имя и содержимое документа по его ID.",
                 "produces": [
                     "application/json"
                 ],
@@ -534,7 +505,12 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Удаляет документ и связанные данные.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет документ, все связи и физический файл.",
                 "produces": [
                     "application/json"
                 ],
@@ -553,7 +529,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successfully deleted",
+                        "description": "{\"message\":\"Document deleted\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -571,7 +547,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Failed to clear associations or failed to delete",
+                        "description": "Failed to delete document",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -582,16 +558,21 @@ const docTemplate = `{
                 }
             }
         },
-        "/documents/{id}/huffman": {
+        "/api/documents/{id}/huffman": {
             "get": {
-                "description": "Кодирует содержимое документа с использованием алгоритма Хаффмана.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает закодированное представление содержимого документа.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Документы"
                 ],
-                "summary": "Кодирование документа",
+                "summary": "Кодирование документа алгоритмом Хаффмана",
                 "parameters": [
                     {
                         "type": "integer",
@@ -603,16 +584,14 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Закодированное содержимое документа",
+                        "description": "{\"document_id\":int,\"huffman_encoded\":string}",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid document ID",
+                        "description": "Invalid document ID or content too large",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -641,16 +620,21 @@ const docTemplate = `{
                 }
             }
         },
-        "/documents/{id}/statistics": {
+        "/api/documents/{id}/statistics": {
             "get": {
-                "description": "Рассчитывает TF-IDF статистику для документа.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Рассчитывает TF‑IDF слова внутри всех коллекций, где есть этот документ.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Документы"
                 ],
-                "summary": "Статистика документа",
+                "summary": "TF‑IDF статистика документа",
                 "parameters": [
                     {
                         "type": "integer",
@@ -662,12 +646,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Statistics",
+                        "description": "{\"document_id\":int,\"statistics\":map[string]object}",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -700,9 +682,106 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/logout": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Завершает сессию пользователя (удаляет куки).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Пользователь"
+                ],
+                "summary": "Выход из аккаунта",
+                "responses": {
+                    "200": {
+                        "description": "{\"message\":\"Logged out\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/metrics": {
+            "get": {
+                "description": "Возвращает общее число обработанных документов и среднее время обработки (нс).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Системные"
+                ],
+                "summary": "Метрики обработки документов",
+                "responses": {
+                    "200": {
+                        "description": "Application metrics",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/status": {
+            "get": {
+                "description": "Проверяет, что сервис запущен.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Системные"
+                ],
+                "summary": "Статус приложения",
+                "responses": {
+                    "200": {
+                        "description": "Application is running",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/version": {
+            "get": {
+                "description": "Возвращает значение переменной окружения VERSION.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Системные"
+                ],
+                "summary": "Текущая версия приложения",
+                "responses": {
+                    "200": {
+                        "description": "Application version",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
-                "description": "Проверка учетных данных и генерация JWT токена.",
+                "description": "Проверяет учётные данные и возвращает JWT‑токен.",
                 "consumes": [
                     "application/json"
                 ],
@@ -716,7 +795,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "Данные для аутентификации",
-                        "name": "AuthRequest",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -726,9 +805,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "{\"message\":string,\"token\":string}",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.AuthResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -752,32 +832,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/logout": {
-            "get": {
-                "description": "Завершение сеанса пользователя.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Пользователь"
-                ],
-                "summary": "Выход из аккаунта",
-                "responses": {
-                    "200": {
-                        "description": "Successfully logged out",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/register": {
             "post": {
-                "description": "Создание учетной записи пользователя.",
+                "description": "Создаёт нового пользователя и возвращает JWT‑токен.",
                 "consumes": [
                     "application/json"
                 ],
@@ -787,11 +844,11 @@ const docTemplate = `{
                 "tags": [
                     "Пользователь"
                 ],
-                "summary": "Регистрация нового пользователя",
+                "summary": "Регистрация пользователя",
                 "parameters": [
                     {
                         "description": "Данные для регистрации",
-                        "name": "AuthRequest",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -801,9 +858,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "{\"message\":string,\"token\":string}",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.AuthResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -829,7 +887,12 @@ const docTemplate = `{
         },
         "/user/{user_id}": {
             "delete": {
-                "description": "Удаление пользователя, его документы и коллекции.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет пользователя, его документы и коллекции.",
                 "produces": [
                     "application/json"
                 ],
@@ -848,7 +911,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "User deleted",
+                        "description": "{\"message\":\"User deleted\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -868,7 +931,12 @@ const docTemplate = `{
                 }
             },
             "patch": {
-                "description": "Обновление пароля пользователя.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Обновляет пароль текущего пользователя.",
                 "consumes": [
                     "application/json"
                 ],
@@ -878,7 +946,7 @@ const docTemplate = `{
                 "tags": [
                     "Пользователь"
                 ],
-                "summary": "Изменение пароля",
+                "summary": "Изменение пароля пользователя",
                 "parameters": [
                     {
                         "type": "integer",
@@ -889,17 +957,17 @@ const docTemplate = `{
                     },
                     {
                         "description": "Новый пароль",
-                        "name": "NewPassword",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/internal_controllers.ChangePasswordRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Password updated",
+                        "description": "{\"message\":\"Password updated\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -954,14 +1022,11 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_controllers.AuthResponse": {
+        "internal_controllers.ChangePasswordRequest": {
             "type": "object",
             "properties": {
-                "message": {
+                "new_password": {
                     "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
                 }
             }
         },
@@ -990,17 +1055,24 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
+	Version:          "2.2.1",
 	Host:             "",
 	BasePath:         "",
-	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Schemes:          []string{"http"},
+	Title:            "LestaStartTest API",
+	Description:      "Сервис для загрузки документов, подсчёта TF‑IDF и управления коллекциями.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

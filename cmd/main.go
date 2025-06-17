@@ -1,3 +1,11 @@
+// @title           LestaStartTest API
+// @version         2.2.1
+// @description     Сервис для загрузки документов, подсчёта TF‑IDF и управления коллекциями.
+// @schemes         http
+// @securityDefinitions.apikey BearerAuth
+// @in              header
+// @name            Authorization
+
 package main
 
 import (
@@ -8,6 +16,7 @@ import (
 	"LestaStartTest/internal/db"
 	"LestaStartTest/internal/middleware"
 
+	"LestaStartTest/docs"
 	_ "LestaStartTest/docs"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -34,8 +43,17 @@ func main() {
 	// Раздаём папку static/ по корню
 	r.Static("/static", "./static")
 
-	// Swagger маршруты
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Настройка SwaggerInfo вручную
+	docs.SwaggerInfo.BasePath = "/api"
+	docs.SwaggerInfo.Host = "localhost:" + port
+
+	// Раздача статичных swagger.json, swagger.yaml
+	r.Static("/swagger-docs", "./docs")
+
+	// Swagger UI, указывающий на JSON
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
+		ginSwagger.URL("/swagger-docs/swagger.json"),
+	))
 
 	// Публичные API эндпоинты
 	r.POST("/login", controllers.LoginAPI)

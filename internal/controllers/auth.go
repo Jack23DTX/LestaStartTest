@@ -22,14 +22,14 @@ type AuthResponse struct {
 	UserID  uint   `json:"user_id,omitempty"`
 }
 
-// LoginAPI - аутентификация пользователя
+// LoginAPI – аутентификация пользователя
 // @Summary Аутентификация пользователя
-// @Description Проверка учетных данных и генерация JWT токена.
+// @Description Проверяет учётные данные и возвращает JWT‑токен.
 // @Tags Пользователь
 // @Accept json
 // @Produce json
-// @Param AuthRequest body AuthRequest true "Данные для аутентификации"
-// @Success 200 {object} AuthResponse
+// @Param body body controllers.AuthRequest true "Данные для аутентификации"
+// @Success 200 {object} map[string]interface{} "{"message":string,"token":string}"
 // @Failure 400 {object} map[string]string "Invalid request body"
 // @Failure 401 {object} map[string]string "Invalid credentials"
 // @Router /login [post]
@@ -62,14 +62,14 @@ func LoginAPI(c *gin.Context) {
 	})
 }
 
-// RegisterAPI - регистрация нового пользователя
-// @Summary Регистрация нового пользователя
-// @Description Создание учетной записи пользователя.
+// RegisterAPI – регистрация нового пользователя
+// @Summary Регистрация пользователя
+// @Description Создаёт нового пользователя и возвращает JWT‑токен.
 // @Tags Пользователь
 // @Accept json
 // @Produce json
-// @Param AuthRequest body AuthRequest true "Данные для регистрации"
-// @Success 200 {object} AuthResponse
+// @Param body body controllers.AuthRequest true "Данные для регистрации"
+// @Success 200 {object} map[string]interface{} "{"message":string,"token":string}"
 // @Failure 400 {object} map[string]string "Invalid request"
 // @Failure 409 {object} map[string]string "User already exists"
 // @Router /register [post]
@@ -116,13 +116,14 @@ func RegisterAPI(c *gin.Context) {
 	})
 }
 
-// LogoutAPI - выход из аккаунта пользователя
+// LogoutAPI – выход из аккаунта
 // @Summary Выход из аккаунта
-// @Description Завершение сеанса пользователя.
+// @Description Завершает сессию пользователя (удаляет куки).
 // @Tags Пользователь
+// @Security BearerAuth
 // @Produce json
-// @Success 200 {object} map[string]string "Successfully logged out"
-// @Router /logout [get]
+// @Success 200 {object} map[string]string "{"message":"Logged out"}"
+// @Router /api/logout [get]
 func LogoutAPI(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }

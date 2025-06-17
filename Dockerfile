@@ -17,6 +17,8 @@ COPY --from=builder /app/LestaStartTest .
 
 COPY --from=builder /app/static ./static
 
+COPY --from=builder /app/docs ./docs
+
 COPY .env .
 
 RUN mkdir uploads
