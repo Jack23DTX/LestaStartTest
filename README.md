@@ -175,7 +175,7 @@ LestaStartTest/
 
 ## Работа с Swagger
 
-Swagger UI доступен по адресу [`/swagger`](http://localhost:8080/swagger).
+Swagger UI доступен по адресу [`/swagger/index.html`](http://localhost:8080/swagger/index.html).
 
 ### Особенности авторизации
 
